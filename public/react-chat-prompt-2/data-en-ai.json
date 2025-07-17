@@ -1,0 +1,230 @@
+{
+  "app_Headline1": "Chatbot",
+  "app_Headline2": "AI Chatbot / Download link",
+  "app_Headline3": "Full Project Plan",
+
+  "chat_activePromptLabel": "Active Prompt",
+  "chat_startConversation": "Start a conversation...",
+  "chat_youLabel": "You:",
+  "chat_systemLabel": "System:",
+  "chat_aiLabel": "AI:",
+  "chat_aiTyping": "AI is typing...",
+  "chat_messagePlaceholder": "Type your message...",
+  "chat_sendButton": "Send",
+  "chat_infoLabel": "Info",
+  "chat_roadmapInfo": "The project plan is updated automatically when the AI generates .ics calendar data. Currently displayed events:",
+
+  "chat_uploadFilesLabel": "Upload text and calendar files",
+  "chat_fileHint": ".txt and .ics files allowed (ICS files are imported automatically)",
+  "chat_uploadedFilesTitle": "Uploaded files ({count}):",
+  "chat_filesAttached": "{count} file(s) attached",
+  "chat_deleteFileTooltip": "Delete file",
+  "chat_calendarType": "Calendar",
+
+
+
+  "personalDataLabel": "Personal Data",
+  "ageLabel": "Age:",
+  "genderLabel": "Gender:",
+  "countryLabel": "Country:",
+
+  "question1": "What is your problem or goal?",
+  "question2": "What solution do you have in mind?",
+  "question3": "In how many weeks do you want to achieve the goal?",
+  "question4": "What is the desired outcome?",
+  "question4Hint": "Describe the specific end result",
+  "question5": "When do you want to start?",
+  "question5Hint": "Choose your start date",
+  "question6": "At what time would you like to start each day?",
+  "question6Hint": "Your preferred start time",
+  "question7": "How many hours per day would you like to work on it?",
+  "question8": "On which days of the week would you like to work?",
+  "question9": "In which industry/field do you work?",
+  "question9Hint": "e.g., Marketing, Technology, Healthcare",
+
+  "submitButton": "Save Project",
+
+  "workDays": {
+    "monday": "Monday",
+    "tuesday": "Tuesday", 
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday",
+    "sunday": "Sunday"
+  },
+
+  "workDaysShort": {
+    "monday": "Mon",
+    "tuesday": "Tue",
+    "wednesday": "Wed", 
+    "thursday": "Thu",
+    "friday": "Fri",
+    "saturday": "Sat",
+    "sunday": "Sun"
+  },
+
+  "workDaysSelected": "Selected",
+  "workDaysSingular": "Day",
+  "workDaysPlural": "Days",
+
+   
+  
+  
+    "aiRolePrompt": "You are an experienced project manager. Your task consists of two steps: 1. Analyze the user’s goal and output a complete list of all the necessary tasks required to achieve it (maximum 10). 2. Based on this list, generate a fully completed JSON calendar plan using the format below: [{\"date\": \"2025-07-04\", \"dailyStartTime\": \"09:00\", \"dailyHours\": 2, \"task\": \"React Component Setup and Configuration\", \"motivation\": \"Create a solid foundation for further development\"}, {\"date\": \"2025-07-05\", \"dailyStartTime\": \"10:30\", \"dailyHours\": 3, \"task\": \"Backend API Design and Implementation\", \"motivation\": \"Implement data flow and business logic\"}]. Requirements: - All tasks must be included in the final calendar. - Ensure that each task is mapped to a date. - Use realistic time estimates, spread the tasks evenly over the entire project period. - Tasks must logically follow one another. - Always begin from the next working day. - Task descriptions should be clear and actionable. - Motivations must be positively phrased and goal-oriented. - Dates must use YYYY-MM-DD format. - Times must use HH:MM format. - Durations should be in decimal hours (e.g., 1.5). Finally, double-check: - That all planned tasks are represented in the JSON. - That the number of tasks equals the number of JSON entries. - That the list ends only when all tasks have been assigned.",
+
+
+
+  
+  "promptTemplate": {
+    "problem": "\n\nProblem: ",
+    "solution": "\nProposed Solution: ",
+    "result": "\nDesired Outcome: ",
+    "period": "\nTimeframe (Weeks): ",
+    "startDate": "\nStart Date: ",
+    "dailyStartTime": "\nDaily Start Time: ",
+    "dailyHours": "\nHours per Day: ",
+    "workDays": "\nWorkdays: ",
+    "industry": "\nIndustry/Field: "
+  },
+
+  "roadmapLabels": {
+    "title": "AI Coach Roadmap",
+    "title2": "Daily Task & Motivation",
+    "subtitle": "Your Personalized Journey to Success",
+    "headerIcon": "📅",
+    "exportButton": "Export to Calendar (.ics)",
+    "exportIcon": "⬇️",
+    "icsFileName": "ai-coach-roadmap.ics",
+
+    "completedIcon": "✅",
+    "incompleteIcon": "⭕",
+
+    "startTimeIcon": "🕘",
+    "startTimeLabel": "START TIME",
+    "durationIcon": "⏱️", 
+    "durationLabel": "DURATION",
+    "endTimeIcon": "🕕",
+    "endTimeLabel": "END TIME",
+    "hoursShort": "h",
+    "hoursLabel": "Hours",
+
+    "taskIcon": "🎯",
+    "todaysTask": "Today's Task",
+    "taskLabel": "Task",
+
+    "motivationIcon": "💖",
+    "motivationLabel": "Motivation",
+
+    "calendarIcon": "🔗",
+    "addToGoogleCalendar": "Add to Google Calendar",
+    "calendarEventPrefix": "AI Coach",
+    "calendarLocation": "Personal Development",
+
+    "progressTitle": "Progress Overview",
+    "ofLabel": "of",
+    "tasksCompleted": "Tasks Completed",
+
+    "totalHours": "Total Hours",
+    "completedHours": "Completed Hours", 
+    "avgHoursPerDay": "Avg Hours/Day",
+    "remainingHours": "Remaining Hours",
+
+    "infoTitle": "Advanced Time Tracking",
+    "infoText": "The roadmap now includes detailed time management with start times, durations, and end times. Calendar exports include precise scheduling information."
+  },
+
+  "sampleRoadmapData": [
+    {
+      "date": "2025-07-02",
+      "task": "Write value proposition: What transformation does the reader get?",
+      "dailyStartTime": "10:00",
+      "dailyHours": 6,
+      "motivation": "Drinks with friends"
+    },
+    {
+      "date": "2025-07-03",
+      "task": "Research 3 competitor landing pages and note what works.",
+      "dailyStartTime": "10:00",
+      "dailyHours": 6,
+      "motivation": "Call some friends"
+    },
+    {
+      "date": "2025-07-04",
+      "task": "Brainstorm page sections: Hero, About, Book Preview, Testimonials, Purchase CTA.",
+      "dailyStartTime": "10:00",
+      "dailyHours": 6,
+      "motivation": "Watch the movie about Steve Jobs"
+    },
+    {
+      "date": "2025-07-05",
+      "task": "Write copy for each section (concise + benefit-driven).",
+      "dailyStartTime": "10:00",
+      "dailyHours": 6,
+      "motivation": "Go get some ice cream"
+    },
+    {
+      "date": "2025-07-06",
+      "task": "Create wireframe or rough layout of the page.",
+      "dailyStartTime": "10:00",
+      "dailyHours": 6,
+      "motivation": "Go to the cinema in the evening"
+    },
+    {
+      "date": "2025-07-07",
+      "task": "Create design mockup or choose a template.",
+      "dailyStartTime": "10:00",
+      "dailyHours": 6,
+      "motivation": "Try a new restaurant"
+    },
+    {
+      "date": "2025-07-08",
+      "task": "Implement landing page (HTML/CSS or website builder).",
+      "dailyStartTime": "10:00",
+      "dailyHours": 6,
+      "motivation": "Take a relaxing walk"
+    },
+    {
+      "date": "2025-07-09",
+      "task": "Add content and run initial tests.",
+      "dailyStartTime": "10:00",
+      "dailyHours": 6,
+      "motivation": "Watch your favorite series"
+    },
+    {
+      "date": "2025-07-10",
+      "task": "Check and optimize mobile responsiveness.",
+      "dailyStartTime": "10:00",
+      "dailyHours": 6,
+      "motivation": "Picnic in the park"
+    },
+    {
+      "date": "2025-07-11",
+      "task": "Implement SEO basics (meta tags, alt texts, etc.).",
+      "dailyStartTime": "10:00",
+      "dailyHours": 6,
+      "motivation": "Video game night with friends"
+    },
+    {
+      "date": "2025-07-12",
+      "task": "Set up analytics (Google Analytics, tracking pixels).",
+      "dailyStartTime": "10:00",
+      "dailyHours": 6,
+      "motivation": "Book a massage"
+    },
+    {
+      "date": "2025-07-13",
+      "task": "Conduct final tests and corrections.",
+      "dailyStartTime": "10:00",
+      "dailyHours": 6,
+      "motivation": "Listen to favorite music and dance"
+    },
+    {
+      "date": "2025-07-14",
+      "task": "Publish the landing page and plan initial marketing actions.",
+      "dailyStartTime": "10:00",
+      "dailyHours": 6,
+      "motivation": "Celebrate success with a special dinner"
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "personalDataLabel": "Personal Data: (do not fill out, currently not included in the prompt)",
+  "ageLabel": "Age",
+  "genderLabel": "Gender",
+  "countryLabel": "Current Place of Residence / Country:",
+  "question1": "1. What main problem do you want to solve?",
+  "question2": "2. What solution do you see for it?",
+  "question3": "3. In what timeframe do you want the result to be ready – in months?",
+  "question4": "4. What type of result are you expecting?",
+  "question4Hint": "(e.g. prototype, finished end product)",
+  "question5": "5. When is the project start?",
+  "question5Hint": "(Format: YYYY-MM-DD, e.g. 2025-06-22)",
+  "question6": "6. When do you start working each day?",
+  "question6Hint": "(Format: HH:MM, e.g. 09:00)",
+  "question7": "7. How many hours will you work on the project daily?",
+  "question8": "8. On which days do you plan to work on the project?",
+  "question9": "9. How would you describe your niche or industry?",
+  "question9Hint": "(e.g. online, product sales, service)",
+  "submitButton": "Save project data",
+  "workDays": {
+  "monday": "Monday",
+  "tuesday": "Tuesday", 
+  "wednesday": "Wednesday",
+  "thursday": "Thursday",
+  "friday": "Friday",
+  "saturday": "Saturday",
+  "sunday": "Sunday"
+},
+"workDaysShort": {
+  "monday": "Mon",
+  "tuesday": "Tue",
+  "wednesday": "Wed",
+  "thursday": "Thu", 
+  "friday": "Fri",
+  "saturday": "Sat",
+  "sunday": "Sun"
+},
+"workDaysSelected": "Selected",
+"workDaysSingular": "day",
+"workDaysPlural": "days",
+  "aiRolePrompt": "You are an experienced project manager.\n\nYour task consists of two steps:\n\n1. Analyze the given goal that the user provides and output a complete list of all necessary tasks that need to be completed to achieve this goal.\n\n2. Then convert these tasks into a Google Calendar-compatible format (.ics). For each task, define:\n– The start date (beginning on the next working day, excluding Saturday/Sunday),\n– A start time (e.g. 09:00 AM),\n– A duration (e.g. 2 hours).\n\nYou then generate a complete .ics calendar text that the user can import into Google Calendar.\n\nAnswer format:\nFirst, output the list of tasks in plain text (bullet points or numbered).\nThen follows the calendar content in .ics format, wrapped with the tags ```ics and ```.\n\nExample:\n```ics\nBEGIN:VCALENDAR\n...\nEND:VCALENDAR\n```\n\nOnly begin your analysis once the user has entered their goal, solution, and timeframe.",
+  "promptTemplate": {
+    "problem": "1. The problem I want to solve is: ",
+    "solution": " // 2. The solution I currently see is: ",
+    "result": " // 3. I see the result in the form of: ",
+    "period": " // 4. The timeframe I am planning is (in months): ",
+    "startDate": " // 5. The project start date is: ",
+    "dailyStartTime": " // 6. Daily start time: ",
+    "dailyHours": " // 7. Daily working hours: ",   
+    "workDays": " // 8. Weekly workdays: ",
+    "industry": " // 9. The industry or niche is: "
+  }
+}

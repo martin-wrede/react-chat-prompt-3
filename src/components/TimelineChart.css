@@ -1,0 +1,316 @@
+/* TimelineChart.css */
+.timeline-chart-container {
+  margin: 20px 0;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.timeline-header {
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.timeline-title {
+  margin: 0;
+  font-size: 1.8em;
+  font-weight: 600;
+}
+
+.timeline-controls {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.view-mode-selector {
+  display: flex;
+  gap: 10px;
+}
+
+.mode-button {
+  padding: 8px 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.mode-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.mode-button.active {
+  background: rgba(255, 255, 255, 0.9);
+  color: #333;
+  border-color: white;
+}
+
+.filter-controls {
+  display: flex;
+  align-items: center;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.chart-wrapper {
+  padding: 20px;
+  background: #f8f9fa;
+}
+
+.no-data-message {
+  padding: 40px;
+  text-align: center;
+  color: #666;
+  font-size: 16px;
+}
+
+.no-data-message p {
+  margin: 0;
+}
+
+.task-details-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.task-details-panel::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: -1;
+}
+
+.task-details-header {
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+
+.task-details-header h3 {
+  margin: 0;
+  font-size: 1.4em;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  transition: background 0.3s ease;
+}
+
+.close-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.task-details-content {
+  padding: 20px;
+}
+
+.task-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  gap: 15px;
+}
+
+.task-detail-row strong {
+  min-width: 100px;
+  color: #333;
+  font-weight: 600;
+}
+
+.task-detail-row span {
+  flex: 1;
+  text-align: right;
+}
+
+.completed-task {
+  text-decoration: line-through;
+  color: #28a745;
+  font-style: italic;
+}
+
+.status-completed {
+  color: #28a745;
+  font-weight: 600;
+}
+
+.status-pending {
+  color: #ffc107;
+  font-weight: 600;
+}
+
+.task-detail-actions {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: center;
+}
+
+.toggle-complete-button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.toggle-complete-button.mark-complete {
+  background: #28a745;
+  color: white;
+}
+
+.toggle-complete-button.mark-incomplete {
+  background: #ffc107;
+  color: #333;
+}
+
+.toggle-complete-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.timeline-summary {
+  padding: 20px;
+  background: #f8f9fa;
+  border-top: 1px solid #eee;
+}
+
+.summary-stats {
+  display: flex;
+  justify-content: space-around;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #666;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #333;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .timeline-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .timeline-controls {
+    justify-content: space-between;
+  }
+
+  .task-details-panel {
+    width: 95%;
+    max-height: 85vh;
+  }
+
+  .task-detail-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .task-detail-row span {
+    text-align: left;
+  }
+
+  .summary-stats {
+    flex-direction: column;
+    gap: 15px;
+  }
+}
+
+/* Chart container customization */
+.chart-wrapper div[dir="ltr"] {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Google Charts Timeline/Gantt specific styling */
+.google-visualization-table-table {
+  font-family: inherit !important;
+}
+
+/* Animation for smooth transitions */
+.timeline-chart-container * {
+  transition: all 0.3s ease;
+}
+
+.mode-button,
+.toggle-complete-button {
+  transform: translateY(0);
+}
+
+.mode-button:active,
+.toggle-complete-button:active {
+  transform: translateY(1px);
+}
