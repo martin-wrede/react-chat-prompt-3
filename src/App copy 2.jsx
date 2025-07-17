@@ -12,7 +12,8 @@ import './App.css';
 
 // This function remains the same
 const calculateDateFromOffset = (startDateString, dayOffset, workDays) => {
-  if (!startDateString || workDays.length === 0) {
+  // ... (no changes here)
+    if (!startDateString || workDays.length === 0) {
       console.warn("calculateDateFromOffset called with invalid inputs. Falling back to today's date.");
       return new Date().toISOString().split('T')[0];
   }
@@ -40,8 +41,8 @@ const calculateDateFromOffset = (startDateString, dayOffset, workDays) => {
 };
 
 /**
- * UPDATED FUNCTION: Rescales task day_offsets to fit a target duration.
- * Now handles both stretching and compressing the timeline.
+ * NEW FUNCTION: Rescales task day_offsets to fit a target duration.
+ * Takes the AI's plan and stretches/compresses it evenly.
  * @param {Array} tasks - The array of task objects from the AI.
  * @param {number} targetTotalWorkDays - The total number of work days the plan should cover.
  * @returns {Array} The tasks with their day_offset values recalculated.
@@ -51,27 +52,23 @@ const rescaleTaskOffsets = (tasks, targetTotalWorkDays) => {
     return [];
   }
 
+  // Find the duration of the AI's plan
   const offsets = tasks.map(t => t.day_offset);
   const minAiDay = Math.min(...offsets);
   const maxAiDay = Math.max(...offsets);
-  // Ensure aiPlanDuration is at least 1 to avoid division by zero
-  const aiPlanDuration = Math.max(1, maxAiDay - minAiDay + 1);
+  const aiPlanDuration = maxAiDay - minAiDay + 1;
 
-  // --- THIS IS THE KEY CHANGE ---
-  // The old logic prevented compression. This new logic allows it.
-  // We only skip rescaling if the plan is a single day or already matches the target.
-  if (aiPlanDuration === 1 || aiPlanDuration === targetTotalWorkDays) {
+  // If AI plan is already longer or there's nothing to scale, return as is
+  if (aiPlanDuration >= targetTotalWorkDays || aiPlanDuration <= 1) {
     return tasks;
   }
   
+  // Apply a linear mapping to stretch the offsets
   const rescaledTasks = tasks.map(task => {
     // How far through the AI plan is this task (from 0.0 to 1.0)?
-    // If the plan is 1 day long, avoid division by zero.
-    const relativePosition = aiPlanDuration > 1 
-      ? (task.day_offset - minAiDay) / (aiPlanDuration - 1)
-      : 0;
+    const relativePosition = (task.day_offset - minAiDay) / (aiPlanDuration - 1);
     
-    // Map that relative position onto the new timeline (stretching or compressing)
+    // Map that relative position onto the new, longer timeline
     const newOffset = 1 + Math.round(relativePosition * (targetTotalWorkDays - 1));
     
     return { ...task, day_offset: newOffset };
@@ -95,8 +92,10 @@ function App() {
   
   const [projectStartDate, setProjectStartDate] = useState('');
   const [workDays, setWorkDays] = useState(['monday', 'tuesday', 'wednesday', 'thursday', 'friday']);
-  const [projectPeriod, setProjectPeriod] = useState(4); 
+  // 1. Add state for the project period (in weeks)
+  const [projectPeriod, setProjectPeriod] = useState(4); // Default to 4 weeks
 
+  // ... (params and today variables are fine)
   const params = new URLSearchParams(location.search);
   const part1 = params.get('part1');
   const part2 = params.get('part2');
@@ -104,6 +103,7 @@ function App() {
   const part4 = params.get('part4');
   
   const today = new Date().toISOString().split('T')[0];
+
 
   useEffect(() => {
     const contextString = `Current Project Plan (as JSON):\n${JSON.stringify(roadmapData, null, 2)}`;
@@ -120,6 +120,7 @@ function App() {
     setRoadmapData(updatedData);
   };
 
+  // 2. Modify processAIResponse to use the new rescaling logic
   const processAIResponse = (content) => {
     const defaultMotivation = data?.chat_defaultMotivation || 'Erreiche dein Ziel!';
     const icsContents = fileUtils.extractIcsContent(content);
@@ -133,15 +134,18 @@ function App() {
             let tasksWithOffsets = JSON.parse(jsonString);
 
             if (Array.isArray(tasksWithOffsets)) {
+              // --- THIS IS THE NEW LOGIC ---
               // Calculate the total number of work days the user wants the project to span
               const targetTotalWorkDays = projectPeriod * workDays.length;
               
               // Rescale the AI's plan to fit the user's desired duration
               const rescaledTasks = rescaleTaskOffsets(tasksWithOffsets, targetTotalWorkDays);
+              // --- END OF NEW LOGIC ---
 
               const newEvents = rescaledTasks.map(task => ({
                 task: task.task,
                 dailyHours: task.dailyHours || 1,
+                // Use the new, rescaled day_offset to calculate the date
                 date: calculateDateFromOffset(projectStartDate, task.day_offset, workDays), 
                 dailyStartTime: task.dailyStartTime || '10:00',
                 motivation: task.motivation || defaultMotivation, 
@@ -160,16 +164,7 @@ function App() {
     }
 
     if (allNewEvents.length > 0) {
-      // Sort first by date, then by original task order to keep clustered tasks sequential
-      allNewEvents.sort((a, b) => {
-        const dateA = new Date(a.date).getTime();
-        const dateB = new Date(b.date).getTime();
-        if (dateA !== dateB) {
-            return dateA - dateB;
-        }
-        // If dates are the same, we don't have an original index, so keep it stable.
-        return 0;
-      });
+      allNewEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
       setRoadmapData(allNewEvents);
       setTimeout(() => {
         const successMessage = (data?.chat_autoImportSuccess || 'Automatisch {count} Termine importiert!').replace('{count}', allNewEvents.length);
@@ -187,6 +182,7 @@ function App() {
     };
   };
 
+  // ... (handleFileUpload, sendMessage, deleteFile are unchanged) ...
   const handleFileUpload = async (event) => {
     const files = Array.from(event.target.files);
     for (const file of files) {
@@ -275,6 +271,7 @@ function App() {
       <div id="part1" style={{ display: part1 }}>
         <h2>{data?.app_Headline1}</h2>
         <div id="form-all-id">
+          {/* 3. Pass the new setter to the Form component */}
           <Form 
             onPromptChange={setGesamtPrompt} 
             onStartDateChange={setProjectStartDate}

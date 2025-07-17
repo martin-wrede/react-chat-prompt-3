@@ -3,14 +3,24 @@
 import React, { useState, useContext } from "react";
 import { Context } from '../Context';
 
-// 1. Add `onPeriodChange` to the props
-export default function Form({ onPromptChange, onStartDateChange, onWorkDaysChange, onPeriodChange }) {
-  // ... (no other changes needed at the top)
+export default function Form({ onPromptChange, onStartDateChange, onWorkDaysChange }) {
   const [age, setAge] = useState(20);
   const [gender, setGender ] = useState("männlich");
   const [country, setCountry] = useState("Deutschland");
 
   const { data, language } = useContext(Context);
+
+  const [promptInfo, setPromptInfo] = useState({
+    problem: "",
+    solution: "",
+    result: "",
+    period: "",
+    startDate: "",
+    dailyStartTime: "",
+    dailyHours: "",
+    workDays: [],
+    industry: ""
+  });
 
   const [generatedPromptMessage, setGeneratedPromptMessage] = useState("");
 
@@ -38,10 +48,11 @@ export default function Form({ onPromptChange, onStartDateChange, onWorkDaysChan
     event.preventDefault();
     const formData = new FormData(event.target);
 
+    // 1. Get all the data from the form
     const problem = formData.get("problem");
     const solution = formData.get("solution");
     const result = formData.get("result");
-    const period = formData.get("period"); // We get the period here
+    const period = formData.get("period");
     const startDate = formData.get("startDate");
     const dailyStartTime = formData.get("dailyStartTime");
     const dailyHours = formData.get("dailyHours");
@@ -51,25 +62,26 @@ export default function Form({ onPromptChange, onStartDateChange, onWorkDaysChan
       weekDays.find(day => day.id === dayId)?.label
     ).join(', ');
 
+    // 2. Define the new, precise instructions for the AI's output format
     const aiOutputInstructions = `
-VERY IMPORTANT: Your entire response MUST be ONLY a single, valid JSON array of task objects.
-Do NOT add any text, explanations, comments, or markdown like \`\`\`json before or after the JSON array.
-The JSON must be perfectly formatted with double quotes for all keys and string values.
-
+IMPORTANT: Your response MUST be ONLY a valid JSON array of task objects. Do not add any text, explanations, or markdown before or after the JSON.
 Each object in the array represents a single task and must have these exact keys:
-- "task": (string) A description of the task.
-- "day_offset": (number) The project day this task falls on (e.g., 1, 2, 3...). Day 1 is the first available work day.
-- "dailyHours": (number) The hours required for this task.
-- "dailyStartTime": (string) The start time of the task (e.g., "${dailyStartTime}").
-- "motivation": (string) A short, motivating sentence for completing the task.
+- "task": A string describing the task.
+- "day_offset": A number representing the project day this task falls on (e.g., 1, 2, 3...). Calculate this based on the user's goal, period, and available work days. Day 1 is the first available work day.
+- "dailyHours": A number for the hours required for this task.
+- "dailyStartTime": A string for the start time of the task (e.g., "${dailyStartTime}").
+- "motivation": A short, motivating sentence for completing the task.
 
-Example of a perfect, complete response:
+Example JSON output:
+\`\`\`json
 [
   { "day_offset": 1, "task": "Initial research on competitors", "dailyHours": 4, "dailyStartTime": "${dailyStartTime}", "motivation": "A journey of a thousand miles begins with a single step!" },
   { "day_offset": 2, "task": "Outline value proposition based on research", "dailyHours": 3, "dailyStartTime": "${dailyStartTime}", "motivation": "Clarity is power. Let's define our core message." }
 ]
+\`\`\`
 `;
 
+    // 3. Construct the user's context for the AI
     const userContext = data.promptTemplate.problem + problem
       + data.promptTemplate.solution + solution
       + data.promptTemplate.result + result
@@ -79,18 +91,18 @@ Example of a perfect, complete response:
       + data.promptTemplate.workDays + workDaysString
       + data.promptTemplate.industry + industry;
     
+    // 4. Combine the role, user context, and output instructions into the final system prompt
     const fullPrompt = (data.aiRolePrompt || "You are a helpful project manager.") + "\n\n" + userContext + "\n\n" + aiOutputInstructions;
 
-    // 2. Pass the period (duration in weeks) up to App.jsx
+    // 5. Update the parent component (App.jsx) with the necessary info.
     onPromptChange(fullPrompt);
     onStartDateChange(startDate);
     onWorkDaysChange(workDays);
-    onPeriodChange(period); // <<< ADD THIS LINE
 
+    // 6. Set a confirmation message to display locally
     setGeneratedPromptMessage(`✅ System-Prompt wurde generiert. Du kannst jetzt im Chat unten den Plan erstellen lassen (z.B. mit "Erstelle den Plan").`);
   };
 
-  // --- No other changes are needed in the JSX return part ---
   return (
     <div>
       {data.personalDataLabel}
@@ -141,7 +153,7 @@ Example of a perfect, complete response:
 
         <label>
           <b>{data.question3}</b><br />
-          <input type="number" name="period" min="1" defaultValue="4" required />
+          <input type="number" name="period" min="1" required />
         </label>
         <br /><br />
 
@@ -215,3 +227,5 @@ Example of a perfect, complete response:
     </div>
   );
 }
+
+// --- END OF FILE Form.jsx ---
