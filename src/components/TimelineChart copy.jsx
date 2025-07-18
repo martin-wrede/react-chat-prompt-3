@@ -1,5 +1,3 @@
-// --- START OF FILE TimelineChart.jsx ---
-
 import React, { useState, useContext, useEffect } from 'react';
 import { Chart } from 'react-google-charts';
 import { Context } from '../Context';
@@ -23,68 +21,82 @@ const TimelineChart = ({ roadmapData, onTaskUpdate }) => {
       ? roadmapData 
       : roadmapData.filter(task => !task.completed);
 
-    // --- NEW LOGIC START ---
-    // This is the core of the new feature. We process tasks to calculate their visual end time.
-    const processedTasks = filteredData.map((task, index) => {
-      const taskDate = new Date(task.date);
-      const [startHour, startMinute] = (task.dailyStartTime || '10:00').split(':').map(Number);
-      const durationHours = task.dailyHours || 1;
-
-      const startDateTime = new Date(taskDate);
-      startDateTime.setHours(startHour, startMinute, 0, 0);
-
-      // Default end time is based on the task's own duration. This is the fallback.
-      let endDateTime = new Date(startDateTime.getTime() + durationHours * 60 * 60 * 1000);
-
-      // Look ahead to the next task to determine if we should extend the visual duration.
-      const nextTask = filteredData[index + 1];
-
-      // If there is a next task AND it's on a different day, extend the current task's bar.
-      if (nextTask && task.date !== nextTask.date) {
-        const nextTaskStartDate = new Date(nextTask.date);
-        const [nextStartHour, nextStartMinute] = (nextTask.dailyStartTime || '10:00').split(':').map(Number);
-        nextTaskStartDate.setHours(nextStartHour, nextStartMinute, 0, 0);
-        
-        // Set the visual end time of the current task to be the start time of the next task.
-        endDateTime = nextTaskStartDate;
-      }
-      // If the next task is on the same day, or this is the last task, the default end time is used.
-
-      return {
-        ...task, // Keep original task data
-        startDateTime,
-        endDateTime
-      };
-    });
-    // --- NEW LOGIC END ---
-
     if (viewMode === 'timeline') {
+      // Timeline format: [Task ID, Task Name, Start Date, End Date]
       const timelineData = [
-        [{ type: 'string', id: 'Task' }, { type: 'string', id: 'Name' }, { type: 'date', id: 'Start' }, { type: 'date', id: 'End' }]
+        [
+          { type: 'string', id: 'Task' },
+          { type: 'string', id: 'Name' },
+          { type: 'date', id: 'Start' },
+          { type: 'date', id: 'End' }
+        ]
       ];
-      processedTasks.forEach(pTask => {
-        const taskName = pTask.completed ? `✅ ${pTask.task}` : pTask.task;
-        timelineData.push([pTask.id || `task-${pTask.startDateTime}`, taskName, pTask.startDateTime, pTask.endDateTime]);
-      });
-      setChartData(timelineData);
-    } else { // gantt view
-      const ganttData = [
-        [{ type: 'string', label: 'Task ID' }, { type: 'string', label: 'Task Name' }, { type: 'string', label: 'Resource' }, { type: 'date', label: 'Start Date' }, { type: 'date', label: 'End Date' }, { type: 'number', label: 'Duration' }, { type: 'number', label: 'Percent Complete' }, { type: 'string', label: 'Dependencies' }]
-      ];
-      processedTasks.forEach(pTask => {
-        const durationMs = pTask.endDateTime.getTime() - pTask.startDateTime.getTime();
-        const percentComplete = pTask.completed ? 100 : 0;
-        ganttData.push([
-          pTask.id || `task-${pTask.startDateTime}`,
-          pTask.task,
-          'AI Coach',
-          pTask.startDateTime,
-          pTask.endDateTime,
-          durationMs > 0 ? durationMs : null, // duration in milliseconds, null if zero
-          percentComplete,
-          null 
+
+      filteredData.forEach((task, index) => {
+        const taskDate = new Date(task.date);
+        const [startHour, startMinute] = (task.dailyStartTime || '10:00').split(':').map(Number);
+        const duration = task.dailyHours || 1;
+        
+        const startDateTime = new Date(taskDate);
+        startDateTime.setHours(startHour, startMinute, 0, 0);
+        
+        const endDateTime = new Date(startDateTime);
+        endDateTime.setTime(startDateTime.getTime() + (duration * 60 * 60 * 1000));
+
+        const taskName = task.completed ? `✅ ${task.task}` : task.task;
+        const taskId = task.id || `task-${index}`;
+
+        timelineData.push([
+          taskId,
+          taskName,
+          startDateTime,
+          endDateTime
         ]);
       });
+
+      setChartData(timelineData);
+    } else {
+      // Gantt format: [Task ID, Task Name, Resource, Start Date, End Date, Duration, Percent Complete, Dependencies]
+      const ganttData = [
+        [
+          { type: 'string', label: 'Task ID' },
+          { type: 'string', label: 'Task Name' },
+          { type: 'string', label: 'Resource' },
+          { type: 'date', label: 'Start Date' },
+          { type: 'date', label: 'End Date' },
+          { type: 'number', label: 'Duration' },
+          { type: 'number', label: 'Percent Complete' },
+          { type: 'string', label: 'Dependencies' }
+        ]
+      ];
+
+      filteredData.forEach((task, index) => {
+        const taskDate = new Date(task.date);
+        const [startHour, startMinute] = (task.dailyStartTime || '10:00').split(':').map(Number);
+        const duration = task.dailyHours || 1;
+        
+        const startDateTime = new Date(taskDate);
+        startDateTime.setHours(startHour, startMinute, 0, 0);
+        
+        const endDateTime = new Date(startDateTime);
+        endDateTime.setTime(startDateTime.getTime() + (duration * 60 * 60 * 1000));
+
+        const taskName = task.task;
+        const taskId = task.id || `task-${index}`;
+        const percentComplete = task.completed ? 100 : 0;
+
+        ganttData.push([
+          taskId,
+          taskName,
+          'AI Coach',
+          startDateTime,
+          endDateTime,
+          duration * 60 * 60 * 1000, // Duration in milliseconds
+          percentComplete,
+          null // Dependencies - could be enhanced later
+        ]);
+      });
+
       setChartData(ganttData);
     }
   }, [roadmapData, viewMode, showCompleted]);
@@ -94,10 +106,8 @@ const TimelineChart = ({ roadmapData, onTaskUpdate }) => {
     const selection = chartWrapper.getChart().getSelection();
     if (selection.length > 0) {
       const selectedRow = selection[0].row;
-      // We need to find the original task from the filtered data, as its index matches the chart row
-      const filteredDataSource = showCompleted ? roadmapData : roadmapData.filter(task => !task.completed);
-      if (selectedRow >= 0 && filteredDataSource[selectedRow]) {
-        setSelectedTask(filteredDataSource[selectedRow]);
+      if (selectedRow >= 0 && roadmapData[selectedRow]) {
+        setSelectedTask(roadmapData[selectedRow]);
       }
     }
   };
@@ -116,7 +126,6 @@ const TimelineChart = ({ roadmapData, onTaskUpdate }) => {
 
   // Chart options
   const getChartOptions = () => {
-    // ... (This function remains unchanged)
     const baseOptions = {
       height: Math.max(400, roadmapData.length * 50),
       backgroundColor: '#f8f9fa',
