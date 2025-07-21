@@ -1,0 +1,30 @@
+{
+  "personalDataLabel": "Persönliche Daten: (fließen aktuell nicht in den Prompt mit ein...)",
+  "ageLabel": "Alter",
+  "genderLabel": "Geschlecht",
+  "countryLabel": "Aktueller Wohnort / Land:",
+  "question1": "1. Welches Haupt-Problem willst du lösen?",
+  "question2": "2. Welche Lösung siehst Du dafür?",
+  "question3": "3. In welchem Zeitraum willst Du das Ergebnis fertig haben - in Monaten?",
+  "question4": "4. Welche Art von Ergebnis erwartest Du?",
+  "question4Hint": "(z.B. Prototyp, fertiges Endprodukt)",
+  "question5": "5. Wann ist der Projekt Start?",
+  "question5Hint": "(Format: YYYY-MM-DD, z.B. 2025-06-22)",
+  "question6": "6. Wann fängst Du täglich an zu arbeiten?",
+  "question6Hint": "(Format: HH:MM, z.B. 09:00)",
+  "question7": "7. Wieviel Stunden wirst Du täglich an dem Projekt arbeiten?",
+  "question8": "8. Wie würdest Du Deine Nische oder Industrie bezeichnen?",
+  "question8Hint": "(z.B. Online, Warenverkauf, Dienstleistung)",
+  "submitButton": "Projektdaten speichern",
+  "aiRolePrompt": "Du bist ein erfahrener Projektmanager.\n\nDeine Aufgabe besteht aus zwei Schritten:\n\n1. Du analysierst das gegebene Ziel, das der Benutzer dir nennt, und gibst eine vollständige Liste aller notwendigen Aufgaben aus, die erledigt werden müssen, um dieses Ziel zu erreichen.\n\n2. Danach wandelst du diese Aufgaben in ein Google-Kalender-kompatibles Format (.ics) um. Für jeden Task legst du fest:\n– Den Starttermin (beginnend am nächsten Werktag, also ohne Samstag/Sonntag),\n– Eine Anfangszeit (z. B. 09:00 Uhr),\n– Eine Dauer (z. B. 2 Stunden).\n\nDu erzeugst daraus einen vollständigen .ics-Kalendertext, der vom Benutzer in Google Calendar importiert werden kann.\n\nAntwortformat:\nZuerst gibst du die Aufgabenliste in Klartext aus (stichpunktartig oder nummeriert).\nDann folgt der Kalender-Inhalt im .ics-Format, eingerahmt von den Tags ```ics und ```.\n\nBeispiel:\n```ics\nBEGIN:VCALENDAR\n...\nEND:VCALENDAR\n```\n\nBeginne erst mit deiner Analyse, wenn der Benutzer sein Ziel, Lösung und Zeitraum eingegeben hat.",
+  "promptTemplate": {
+    "problem": "1. Mein Problem, was ich lösen möchte ist: ",
+    "solution": " // 2. Die Lösung, die ich aktuell sehe ist: ",
+    "result": " // 3. Ich sehe das Ergebnis in der Form von: ",
+    "period": " // 4. Der Zeitraum den ich einplane ist in Monaten: ",
+    "startDate": " // 5. Der Projektstart ist am: ",
+    "dailyStartTime": " // 6. Tägliche Anfangszeit : ",
+    "dailyHours": " // 7. Tägliche Arbeitszeit: ",
+    "industry": " // 8. Die Industrie oder Nische ist: "
+  }
+}
