@@ -238,9 +238,7 @@ const saveTask = (idToSave) => {
       )}
 
       <div className="header">
-        <div className="headerTitle"
-       
-        >
+        <div className="headerTitle">
           <h1 style={{display:titleDisplay3 }} className="title">{data.roadmapLabels?.title || 'Roadmap'}</h1>
             <h1 style={{display: titleDisplay2}} className="title">{data.roadmapLabels?.title2 || 'Daily Task'}</h1>
           </div>
@@ -265,55 +263,41 @@ const saveTask = (idToSave) => {
           
           return (
       <div key={item.id} className={`card ${isCompleted ? 'cardCompleted' : ''}`}>
-             
-    <div className="cardHeader">
-
-        {/* --- 1. The Date Display (First Child) --- */}
-        <div className="dateInfo">
-          {isEditing ? (
-            <div className="editable-date-container">
-              <input type="date" value={formatDateForInput(currentData.date)} onChange={(e) => updateEditedData('date', e.target.value)} className="date-input" />
-            </div>
-          ) : (
-            <>
-              <div className="dayName">{dateInfo.dayName}</div>
-              <div className="day">{dateInfo.day}</div>
-              <div className="monthYear">{dateInfo.month} {dateInfo.year}</div>
-            </>
-          )}
-        </div>
-
-        {/* --- 2. The Centered Complete Button (Second Child) --- */}
-        <button
-            onClick={() => toggleTaskComplete(item.id)}
-            className={`icon-button complete-button-edit header-center-button ${isCompleted ? 'active' : 'inactive'}`}
-            title={isCompleted ? "Mark as Incomplete" : "Mark as Complete"}
-        >
-            {isCompleted ? '✅' : '⭕'}
-        </button>
-
-        {/* --- 3. The Delete Button (Third Child) --- */}
-        <button
-            onClick={() => showDeleteConfirmation(item)}
-            className="icon-button delete-button"
-            title="Delete"
-        >
-            🗑️
-        </button>
-        </div>
-
-    {/* The rest of your component remains the same... */}
-    <div className="card-header-controls">
+              <div className="cardHeader">
+                <div className="dateInfo">
+                  {isEditing ? (
+                    <div className="editable-date-container">
+                      <input type="date" value={formatDateForInput(currentData.date)} onChange={(e) => updateEditedData('date', e.target.value)} className="date-input" />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="dayName">{dateInfo.dayName}</div>
+                      <div className="day">{dateInfo.day}</div>
+                      <div className="monthYear">{dateInfo.month} {dateInfo.year}</div>
+                    </>
+                  )}
                 </div>
-
-                
                 <div className="card-header-controls" 
-              >
-                
-                </div>
-             
+                style={{display:"flex", backgroundColor:"red", width:"100%",}}>
+                  <button 
 
-              
+                    onClick={() => toggleTaskComplete(item.id)} 
+                    className={`icon-button complete-button-edit ${isCompleted ? 'active' : 'inactive'}`} 
+                    title={isCompleted ? "Mark as Incomplete" : "Mark as Complete"}
+                  >
+                    {isCompleted ? '✅' : '⭕'}
+                  </button>
+                  <button 
+                    onClick={() => showDeleteConfirmation(item)} 
+                    className="icon-button delete-button" 
+                    title="Delete"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </div>
+
+              {/* === RESTORED TIME EDITING SECTION === */}
               <div className="timeSection">
                 <div className="timeInfo">
                   <div className="timeLabel">{data.roadmapLabels?.startTimeLabel || 'START TIME'}</div>

@@ -174,7 +174,6 @@ Beispiel für eine perfekte, vollständige Antwort:
           <input type="text" name="solution" required />
         </label>
         <br /><br />
-
         <label>
           <b>{data.question3}</b><br />
           <input type="number" name="period" min="1" defaultValue="4" required />

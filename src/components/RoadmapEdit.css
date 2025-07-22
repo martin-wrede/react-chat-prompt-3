@@ -1,17 +1,39 @@
-/* RoadmapEdit CSS - Extracted from inline styles */
+/* RoadmapEdit CSS - Centralized and Uniform Button Styles */
 
-/* Edit Mode Button Styles */
-.edit-button {
-  padding: 6px;
-  background-color: transparent;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  color: #6b7280;
-  transition: all 0.2s ease;
+/* Base class for all icon buttons to ensure uniform size and shape */
+.icon-button {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 32px; /* Uniform width */
+  height: 32px; /* Uniform height */
+  flex-shrink: 0;
+  padding: 0; /* Remove padding to rely on fixed size */
+  border: none;
+  border-radius: 8px; /* Uniform rounded corners */
+  cursor: pointer;
+  font-size: 16px; /* Uniform icon size
+  
+  */
+  transition: all 0.2s ease;
+}
+
+.icon-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Focus states for accessibility */
+.icon-button:focus {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+}
+
+/* --- Specific Button Styles (Color Definitions) --- */
+
+.edit-button {
+  background-color: transparent;
+  color: #6b7280;
 }
 
 .edit-button:hover {
@@ -20,45 +42,55 @@
 }
 
 .save-button {
-  padding: 6px;
   background-color: #dcfce7;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
   color: #059669;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+}
+
+.save-button:hover {
+  background-color: #bbf7d0;
 }
 
 .delete-button {
-  padding: 6px;
   background-color: #fef2f2;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
   color: #dc2626;
-  transition: all 0.2s ease;
+   background-color: #fef2f2;
+  color: #dc2626;
+  
+  /* --- ADD/ADJUST THESE --- */
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 18px; /* A modest size increase */
+  line-height: 1;  /* Prevents extra vertical space */
+}
+}
+
+.delete-button:hover {
+  background-color: #fee2e2;
 }
 
 .cancel-button {
-  padding: 6px;
-  background-color: #fef2f2;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+  background-color: #fef2f2; /* Same as delete for consistency */
   color: #dc2626;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-/* Edit Mode Input Styles */
+.cancel-button:hover {
+  background-color: #fee2e2;
+}
+
+/* Completion checkmark/circle button */
+.complete-button-edit.active {
+  background-color: #dcfce7;
+  color: #059669;
+}
+
+.complete-button-edit.inactive {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+/* --- Other Edit Mode Input and Component Styles --- */
+
 .edit-input {
   padding: 4px 8px;
   border: 1px solid #d1d5db;
@@ -75,63 +107,8 @@
   box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
 }
 
-/* Complete Button Styles */
-.complete-button-edit {
-  padding: 6px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.complete-button-edit.active {
-  background-color: #dcfce7;
-  color: #059669;
-}
-
-.complete-button-edit.inactive {
-  background-color: #f3f4f6;
-  color: #6b7280;
-}
-
-/* Time and Number Input Styles */
-.time-input {
-  padding: 2px 4px;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 12px;
-  background-color: white;
-  color: #1f2937;
-  width: 60px;
-  text-align: center;
-}
-
-.time-input:focus {
-  outline: none;
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
-}
-
-.number-input {
-  padding: 2px 4px;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 12px;
-  background-color: white;
-  color: #1f2937;
-  width: 50px;
-  text-align: center;
-}
-
-.number-input:focus {
-  outline: none;
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
-}
-
+.time-input,
+.number-input,
 .date-input {
   padding: 2px 4px;
   border: 1px solid #d1d5db;
@@ -139,17 +116,21 @@
   font-size: 12px;
   background-color: white;
   color: #1f2937;
-  width: 120px;
   text-align: center;
 }
 
+.time-input:focus,
+.number-input:focus,
 .date-input:focus {
   outline: none;
   border-color: #4f46e5;
   box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
 }
 
-/* Text Area Styles */
+.time-input { width: 60px; }
+.number-input { width: 50px; }
+.date-input { width: 120px; }
+
 .text-area {
   padding: 8px 12px;
   border: 1px solid #d1d5db;
@@ -169,14 +150,12 @@
   box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
 }
 
-/* Button Container */
 .button-container {
   display: flex;
-  gap: 4px;
+  gap: 8px; /* Added a bit more gap for better spacing */
   align-items: center;
 }
 
-/* Editable Date Container */
 .editable-date-container {
   display: flex;
   flex-direction: column;
@@ -184,7 +163,19 @@
   gap: 4px;
 }
 
-/* Confirmation Dialog Styles */
+.duration-input-container {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Center the input and label */
+  gap: 4px;
+}
+
+.duration-input-container span {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+/* --- Confirmation Dialog Styles (Unchanged) --- */
 .confirmation-overlay {
   position: fixed;
   top: 0;
@@ -270,70 +261,45 @@
   background-color: #e5e7eb;
 }
 
-/* Additional Edit Mode Specific Styles */
-.edit-mode-active .sectionTitle {
+ 
+
+.card {
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #4f46e5;
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative; /* <-- ADD THIS LINE */
+}
+
+.cardHeader {
+  position: relative; /* Establishes a positioning context for the center button */
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: space-between; /* Pushes the date to the left and delete button to the right */
+  margin-bottom: 16px;
 }
 
-.edit-mode-active .cardHeader {
-  position: relative;
+.leftHeader {
+  
 }
 
-/* Duration Input Container */
-.duration-input-container {
+/* --- ADD this new rule for the centered button --- */
+.header-center-button {
+  position: absolute;
+  left: 50%; /* Position the button's left edge at the center of the header */
+  transform: translateX(-50%); /* Shift the button left by half its own width to perfectly center it */
+}
+
+
+.rightHeader {
+   
+  gap: 8px;
+}
+
+ .header-button-group {
   display: flex;
   align-items: center;
-  gap: 4px;
-}
-
-.duration-input-container span {
-  font-size: 11px;
-  color: #6b7280;
-}
-
-/* Hover Effects for Better UX */
-.edit-button:hover,
-.delete-button:hover,
-.save-button:hover,
-.cancel-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-/* Focus states for accessibility */
-.edit-button:focus,
-.delete-button:focus,
-.save-button:focus,
-.cancel-button:focus,
-.complete-button-edit:focus {
-  outline: 2px solid #4f46e5;
-  outline-offset: 2px;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .confirmation-dialog {
-    width: 95%;
-    padding: 20px;
-  }
-  
-  .confirmation-buttons {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .confirm-button,
-  .cancel-confirm-button {
-    width: 100%;
-  }
-  
-  .button-container {
-    flex-wrap: wrap;
-  }
-  
-  .date-input {
-    width: 100px;
-  }
+  gap: 8px; /* This creates a small space between the two buttons */
 }
