@@ -1,24 +1,29 @@
-// --- START OF FILE CalendarTimeline.jsx (using react-calendar-timeline) ---
+// --- START OF FILE CalendarTimeline.jsx ---
 
 import React, { useState, useContext, useEffect } from 'react';
-import Timeline, { TimelineMarkers, TodayMarker } from 'react-calendar-timeline'; // NEW
-import moment from 'moment'; // NEW dependency
+import Timeline, { TimelineMarkers, TodayMarker } from 'react-calendar-timeline';
+import moment from 'moment';
 import { Context } from '../Context';
 import './CalendarTimeline.css';
 
-// NEW: Import the library's CSS
-import 'react-calendar-timeline/lib/Timeline.css';
+// --- FIX: CSS import is required for the timeline to be styled correctly. ---
+// This is the most common path. If it fails, try 'react-calendar-timeline/src/lib/Timeline.css'
+// or import it in your main App.css file.
+ // import 'react-calendar-timeline/src/lib/Timeline.css';
 
-const TimelineChart = ({ roadmapData, onTaskUpdate }) => {
+const CalendarTimeline = ({ roadmapData, onTaskUpdate }) => {
   const { data } = useContext(Context);
-  const [groups, setGroups] = useState([{ id: 1, title: 'Tasks' }]); // This library requires a 'groups' array
+  const [groups, setGroups] = useState([{ id: 1, title: 'Tasks' }]);
   const [items, setItems] = useState([]);
   const [showCompleted, setShowCompleted] = useState(true);
   const [selectedTask, setSelectedTask] = useState(null);
 
   // Convert roadmapData to react-calendar-timeline format
   useEffect(() => {
-    if (!roadmapData) return;
+    if (!roadmapData || !Array.isArray(roadmapData)) {
+      setItems([]);
+      return;
+    };
 
     const filteredData = showCompleted 
       ? roadmapData 
@@ -33,14 +38,14 @@ const TimelineChart = ({ roadmapData, onTaskUpdate }) => {
 
       return {
         id: task.id,
-        group: 1, // All items belong to our single group
+        group: 1,
         title: task.task,
         start_time: startMoment.valueOf(),
         end_time: endMoment.valueOf(),
         canMove: true,
         canResize: 'both',
         className: task.completed ? 'item-completed-rct' : 'item-pending-rct',
-        // We'll store the original task object here to retrieve it on select
+        // Store the original task object to retrieve it on select
         originalTask: task 
       };
     });
@@ -49,27 +54,21 @@ const TimelineChart = ({ roadmapData, onTaskUpdate }) => {
   }, [roadmapData, showCompleted]);
   
   // Handler for moving an item
-  const handleItemMove = (itemId, dragTime, newGroupOrder) => {
-    const originalTask = roadmapData.find(t => t.id === itemId);
-    if (!originalTask) return;
-
+  const handleItemMove = (itemId, dragTime) => {
     const movedItem = items.find(i => i.id === itemId);
+    if (!movedItem) return;
+
     const duration = movedItem.end_time - movedItem.start_time;
-    const newStartTime = moment(dragTime);
-    const newEndTime = moment(dragTime + duration);
-    
-    updateTask(itemId, newStartTime, newEndTime);
+    updateTask(itemId, moment(dragTime), moment(dragTime + duration));
   };
   
   // Handler for resizing an item
   const handleItemResize = (itemId, time, edge) => {
-    const originalTask = roadmapData.find(t => t.id === itemId);
-    if (!originalTask) return;
-
     const resizedItem = items.find(i => i.id === itemId);
+    if (!resizedItem) return;
+
     const newStartTime = edge === 'left' ? moment(time) : moment(resizedItem.start_time);
     const newEndTime = edge === 'right' ? moment(time) : moment(resizedItem.end_time);
-
     updateTask(itemId, newStartTime, newEndTime);
   };
 
@@ -79,7 +78,7 @@ const TimelineChart = ({ roadmapData, onTaskUpdate }) => {
     if (!originalTask) return;
 
     const newDurationMs = newEndMoment.valueOf() - newStartMoment.valueOf();
-    const newDailyHours = Math.max(0.5, Math.round((newDurationMs / (1000 * 60 * 60)) * 2) / 2); // Round to nearest 0.5hr
+    const newDailyHours = Math.max(0.5, Math.round((newDurationMs / (1000 * 60 * 60)) * 2) / 2);
 
     const updatedTask = {
       ...originalTask,
@@ -92,21 +91,21 @@ const TimelineChart = ({ roadmapData, onTaskUpdate }) => {
     onTaskUpdate(updatedData);
   };
 
-  const handleItemSelect = (itemId, e, time) => {
+  const handleItemSelect = (itemId) => {
       const selectedItem = items.find(i => i.id === itemId);
       if (selectedItem && selectedItem.originalTask) {
           setSelectedTask(selectedItem.originalTask);
       }
   };
 
-  // Toggle task completion (this logic remains the same)
   const toggleTaskCompletion = (taskId) => {
     if (onTaskUpdate) {
       const updatedData = roadmapData.map(task => 
         task.id === taskId ? { ...task, completed: !task.completed } : task
       );
       onTaskUpdate(updatedData);
-      setSelectedTask(prev => prev ? { ...prev, completed: !prev.completed } : null);
+      // Also update the task in the details panel if it's open
+      setSelectedTask(prev => prev && prev.id === taskId ? { ...prev, completed: !prev.completed } : prev);
     }
   };
 
@@ -136,11 +135,12 @@ const TimelineChart = ({ roadmapData, onTaskUpdate }) => {
             groups={groups}
             items={items}
             defaultTimeStart={moment().add(-3, 'days')}
-            defaultTimeEnd={moment().add(3, 'days')}
+            defaultTimeEnd={moment().add(4, 'days')}
             onItemMove={handleItemMove}
             onItemResize={handleItemResize}
             onItemSelect={handleItemSelect}
-            sidebarWidth={0} // Hide the group sidebar as we don't need it
+            onItemDoubleClick={handleItemSelect}
+            sidebarWidth={0}
           >
             <TimelineMarkers>
                 <TodayMarker />
@@ -149,21 +149,102 @@ const TimelineChart = ({ roadmapData, onTaskUpdate }) => {
         </div>
       ) : (
         <div className="no-data-message">
-          <p>{labels.noTasksMessage || 'No tasks to display in timeline.'}</p>
+          <p>{labels.noTasksMessage || 'No tasks to display. Add some tasks to get started!'}</p>
         </div>
       )}
 
-      {/* The task details panel and summary remain identical to the previous solution */}
+      {/* --- FIX: The entire Task Details Panel is now inside this conditional block. --- */}
+      {/* This prevents errors when `selectedTask` is null. */}
       {selectedTask && (
-        <div className="task-details-panel">
-            {/* ... same JSX as before ... */}
+         <div className="task-details-panel">
+            <div className="task-details-header">
+                <h3>{labels.taskDetails || 'Task Details'}</h3>
+                <button 
+                className="close-button"
+                onClick={() => setSelectedTask(null)}
+                >
+                ✕
+                </button>
+            </div>
+          
+            {/* --- FIX: The content of the panel is now correctly placed inside it. --- */}
+            <div className="task-details-content">
+                <div className="task-detail-row">
+                    <strong>{labels.taskLabel || 'Task'}:</strong>
+                    <span className={selectedTask.completed ? 'completed-task' : ''}>
+                        {selectedTask.task}
+                    </span>
+                </div>
+                
+                <div className="task-detail-row">
+                    <strong>{labels.dateLabel || 'Date'}:</strong>
+                    <span>{new Date(selectedTask.date).toLocaleDateString()}</span>
+                </div>
+                
+                <div className="task-detail-row">
+                    <strong>{labels.timeLabel || 'Time'}:</strong>
+                    <span>{selectedTask.dailyStartTime || '10:00'} - {
+                        (() => {
+                        const [startHour, startMinute] = (selectedTask.dailyStartTime || '10:00').split(':').map(Number);
+                        const duration = selectedTask.dailyHours || 1;
+                        const totalMinutes = startHour * 60 + startMinute + (duration * 60);
+                        const endHour = Math.floor(totalMinutes / 60);
+                        const endMinute = totalMinutes % 60;
+                        return `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
+                        })()
+                    }</span>
+                </div>
+                
+                <div className="task-detail-row">
+                    <strong>{labels.durationLabel || 'Duration'}:</strong>
+                    <span>{selectedTask.dailyHours || 1}h</span>
+                </div>
+                
+                <div className="task-detail-row">
+                    <strong>{labels.statusLabel || 'Status'}:</strong>
+                    <span className={selectedTask.completed ? 'status-completed' : 'status-pending'}>
+                        {selectedTask.completed ? (labels.completedStatus || 'Completed') : (labels.pendingStatus || 'Pending')}
+                    </span>
+                </div>
+                
+                {selectedTask.motivation && (
+                <div className="task-detail-row">
+                    <strong>{labels.motivationLabel || 'Motivation'}:</strong>
+                    <span>{selectedTask.motivation}</span>
+                </div>
+                )}
+                
+                <div className="task-detail-actions">
+                    <button 
+                        className={`toggle-complete-button ${selectedTask.completed ? 'mark-incomplete' : 'mark-complete'}`}
+                        onClick={() => toggleTaskCompletion(selectedTask.id)}
+                    >
+                        {selectedTask.completed ? (labels.markIncomplete || 'Mark as Incomplete') : (labels.markComplete || 'Mark as Complete')}
+                    </button>
+                </div>
+            </div>
         </div>
       )}
+
+      {/* --- FIX: The summary is now a separate, correctly placed section. --- */}
       <div className="timeline-summary">
-        {/* ... same JSX as before ... */}
+        <div className="summary-stats">
+            <div className="stat-item">
+                <span className="stat-label">{labels.totalTasks || 'Total Tasks'}:</span>
+                <span className="stat-value">{roadmapData ? roadmapData.length : 0}</span>
+            </div>
+            <div className="stat-item">
+                <span className="stat-label">{labels.completedTasks || 'Completed'}:</span>
+                <span className="stat-value">{roadmapData ? roadmapData.filter(task => task.completed).length : 0}</span>
+            </div>
+            <div className="stat-item">
+                <span className="stat-label">{labels.totalHours || 'Total Hours'}:</span>
+                <span className="stat-value">{roadmapData ? roadmapData.reduce((sum, task) => sum + (task.dailyHours || 1), 0) : 0}h</span>
+            </div>
+        </div> 
       </div>
     </div>
   );
-};
+}
 
-export default TimelineChart;
+export default CalendarTimeline;

@@ -1,15 +1,17 @@
 // --- START OF FILE App.jsx ---
 
 import React, { useState, useEffect, useContext } from 'react';
- 
-import Form from './components/Form';
+ import Form from './components/Form';
+ import ChatInterface from './components/ChatInterface';
+
 import RoadmapEdit from './components/RoadmapEdit';
-import ChatInterface from './components/ChatInterface';
-// import CalendarTimeline from './components/CalendarTimeline';
+import CalendarTimeline from './components/CalendarTimeline';
 import TimelineChart from './components/TimelineChart';
+
 import { Context } from './Context';
 import * as fileUtils from './utils/fileUtils';
 import './App.css';
+
 
 // This function remains the same
 const calculateDateFromOffset = (startDateString, dayOffset, workDays) => {
@@ -335,13 +337,14 @@ function App() {
       </div>
 
    <div id="part5" style={{ display: "block" }}>
-        {/* 
+        
         <CalendarTimeline 
           roadmapData={roadmapData} 
           onTaskUpdate={handleRoadmapUpdate} 
         />
-        */}
+        
       </div> 
+      
     </div>
   );
 }

@@ -63,7 +63,7 @@
   font-size: 18px; /* A modest size increase */
   line-height: 1;  /* Prevents extra vertical space */
 }
-}
+
 
 .delete-button:hover {
   background-color: #fee2e2;
