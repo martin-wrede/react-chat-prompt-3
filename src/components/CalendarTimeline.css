@@ -1,4 +1,6 @@
 /* Add these styles for react-calendar-timeline */
+ 
+/* Add these styles for react-calendar-timeline */
 .item-completed-rct {
   background-color: #c8e6c9 !important;
   border-color: #a5d6a7 !important;
@@ -17,7 +19,9 @@
     border-color: #667eea !important;
 }
 
-/* Override default sidebar width if hidden */
-.react-calendar-timeline .rct-sidebar {
+/* 
+  This rule was hiding the sidebar. It has been removed.
+  .react-calendar-timeline .rct-sidebar {
     width: 0 !important;
-}
+  } 
+*/
