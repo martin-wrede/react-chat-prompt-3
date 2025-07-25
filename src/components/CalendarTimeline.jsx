@@ -6,12 +6,17 @@ import moment from 'moment';
 import { Context } from '../Context';
 import './CalendarTimeline.css';
 
+// To keep styling consistent, you might want a shared CSS file for these later
+import './TimelineChart.css'; 
+
 const CalendarTimeline = ({ roadmapData, onTaskUpdate }) => {
   const { data } = useContext(Context);
   const [groups, setGroups] = useState([]); 
   const [items, setItems] = useState([]);
-  const [showCompleted, setShowCompleted] = useState(true);
   const [selectedTask, setSelectedTask] = useState(null);
+  
+  // --- 1. ADD STATE: State variable to control the visibility of completed tasks ---
+  const [showCompleted, setShowCompleted] = useState(true);
 
   // Convert roadmapData to react-calendar-timeline format
   useEffect(() => {
@@ -21,13 +26,13 @@ const CalendarTimeline = ({ roadmapData, onTaskUpdate }) => {
       return;
     };
 
+    // --- 3. APPLY FILTER: Filter data based on the showCompleted state ---
     const filteredData = showCompleted 
       ? roadmapData 
       : roadmapData.filter(task => !task.completed);
 
     const sortedData = [...filteredData].sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // The group's title is used for the sidebar label. This remains the same.
     const timelineGroups = sortedData.map(task => ({
       id: task.id,
       title: task.task
@@ -57,9 +62,6 @@ const CalendarTimeline = ({ roadmapData, onTaskUpdate }) => {
       return {
         id: task.id,
         group: task.id, 
-        // --- THIS IS THE KEY CHANGE ---
-        // Set the item title to an empty string to remove text from the bar.
-        // The label is now shown in the sidebar via the 'group' title.
         title: '', 
         start_time: startMoment.valueOf(),
         end_time: endMoment.valueOf(),
@@ -71,6 +73,7 @@ const CalendarTimeline = ({ roadmapData, onTaskUpdate }) => {
     });
 
     setItems(timelineItems);
+    // --- Add showCompleted to the dependency array ---
   }, [roadmapData, showCompleted]);
   
   // Handler for moving an item
@@ -111,7 +114,7 @@ const CalendarTimeline = ({ roadmapData, onTaskUpdate }) => {
     onTaskUpdate(updatedData);
   };
 
-  // Selection and completion logic remains the same
+  // Selection and completion logic
   const handleItemSelect = (itemId) => {
       const selectedItem = items.find(i => i.id === itemId);
       if (selectedItem && selectedItem.originalTask) {
@@ -133,8 +136,23 @@ const CalendarTimeline = ({ roadmapData, onTaskUpdate }) => {
 
   return (
     <div className="timeline-chart-container">
+        {/* --- 2. ADD UI CONTROL: Header with a checkbox for filtering --- */}
         <div className="timeline-header">
-            {/* Header remains the same */}
+            <h2 className="timeline-title">
+              {labels.calendarViewTitle || 'Project Calendar'}
+            </h2>
+            <div className="timeline-controls">
+                <div className="filter-controls">
+                    <label className="checkbox-label">
+                    <input
+                        type="checkbox"
+                        checked={showCompleted}
+                        onChange={(e) => setShowCompleted(e.target.checked)}
+                    />
+                    {labels.showCompleted || 'Show Completed Tasks'}
+                    </label>
+                </div>
+            </div>
         </div>
 
       {items.length > 0 ? (
@@ -158,7 +176,8 @@ const CalendarTimeline = ({ roadmapData, onTaskUpdate }) => {
         </div>
       ) : (
         <div className="no-data-message">
-            {/* No data message remains the same */}
+            {/* Using the same label for consistency */}
+            <p>{labels.noTasksMessage || 'No tasks to display in timeline.'}</p>
         </div>
       )}
 

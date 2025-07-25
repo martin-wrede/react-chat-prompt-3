@@ -8,7 +8,6 @@ import './CalendarTimeline.css';
 
 const CalendarTimeline = ({ roadmapData, onTaskUpdate }) => {
   const { data } = useContext(Context);
-  // The 'groups' state will now be dynamically populated
   const [groups, setGroups] = useState([]); 
   const [items, setItems] = useState([]);
   const [showCompleted, setShowCompleted] = useState(true);
@@ -18,7 +17,7 @@ const CalendarTimeline = ({ roadmapData, onTaskUpdate }) => {
   useEffect(() => {
     if (!roadmapData || !Array.isArray(roadmapData)) {
       setItems([]);
-      setGroups([]); // Also clear groups
+      setGroups([]);
       return;
     };
 
@@ -26,27 +25,42 @@ const CalendarTimeline = ({ roadmapData, onTaskUpdate }) => {
       ? roadmapData 
       : roadmapData.filter(task => !task.completed);
 
-    // --- 1. DYNAMICALLY CREATE GROUPS ---
-    // Create a unique group for each task. The task's name will be the row label.
-    const timelineGroups = filteredData.map(task => ({
+    const sortedData = [...filteredData].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // The group's title is used for the sidebar label. This remains the same.
+    const timelineGroups = sortedData.map(task => ({
       id: task.id,
       title: task.task
     }));
     setGroups(timelineGroups);
 
-    // --- 2. CREATE ITEMS AND ASSIGN THEM TO THEIR GROUP ---
-    const timelineItems = filteredData.map(task => {
+    const timelineItems = sortedData.map((task, index, array) => {
       const startMoment = moment(task.date).set({ 
           hour: parseInt((task.dailyStartTime || '10:00').split(':')[0]), 
           minute: parseInt((task.dailyStartTime || '10:00').split(':')[1]) 
       });
-      const endMoment = startMoment.clone().add(task.dailyHours || 1, 'hours');
+
+      let endMoment = startMoment.clone().add(task.dailyHours || 1, 'hours');
+
+      const nextTask = array[index + 1];
+      if (nextTask && task.date !== nextTask.date) {
+        const nextTaskStartMoment = moment(nextTask.date).set({
+            hour: parseInt((nextTask.dailyStartTime || '10:00').split(':')[0]),
+            minute: parseInt((nextTask.dailyStartTime || '10:00').split(':')[1])
+        });
+        
+        if (nextTaskStartMoment.isAfter(endMoment)) {
+            endMoment = nextTaskStartMoment;
+        }
+      }
 
       return {
         id: task.id,
-        // --- This is the key change: assign the item to its own group ---
         group: task.id, 
-        title: task.task, // The title is still useful for tooltips
+        // --- THIS IS THE KEY CHANGE ---
+        // Set the item title to an empty string to remove text from the bar.
+        // The label is now shown in the sidebar via the 'group' title.
+        title: '', 
         start_time: startMoment.valueOf(),
         end_time: endMoment.valueOf(),
         canMove: true,
@@ -61,8 +75,6 @@ const CalendarTimeline = ({ roadmapData, onTaskUpdate }) => {
   
   // Handler for moving an item
   const handleItemMove = (itemId, dragTime, newGroupId) => {
-    // In our setup, moving between groups (newGroupId) changes the task order,
-    // which we don't handle here, but we can update the time.
     const movedItem = items.find(i => i.id === itemId);
     if (!movedItem) return;
 
@@ -70,7 +82,7 @@ const CalendarTimeline = ({ roadmapData, onTaskUpdate }) => {
     updateTask(itemId, moment(dragTime), moment(dragTime + duration));
   };
   
-  // Handler for resizing an item (logic remains the same)
+  // Handler for resizing an item
   const handleItemResize = (itemId, time, edge) => {
     const resizedItem = items.find(i => i.id === itemId);
     if (!resizedItem) return;
@@ -80,7 +92,7 @@ const CalendarTimeline = ({ roadmapData, onTaskUpdate }) => {
     updateTask(itemId, newStartTime, newEndTime);
   };
 
-  // Central update function (logic remains the same)
+  // Central update function
   const updateTask = (taskId, newStartMoment, newEndMoment) => {
     const originalTask = roadmapData.find(t => t.id === taskId);
     if (!originalTask) return;
@@ -136,9 +148,8 @@ const CalendarTimeline = ({ roadmapData, onTaskUpdate }) => {
             onItemResize={handleItemResize}
             onItemSelect={handleItemSelect}
             onItemDoubleClick={handleItemSelect}
-            // --- 3. ENABLE THE SIDEBAR TO SHOW THE GROUP TITLES ---
-            sidebarWidth={300} // Set a width to make the sidebar visible
-            canMove={false} // Prevents vertical reordering of rows by dragging
+            sidebarWidth={300} 
+            canMove={false}
           >
             <TimelineMarkers>
                 <TodayMarker />
