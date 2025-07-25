@@ -1,0 +1,23 @@
+/* Add these styles for react-calendar-timeline */
+.item-completed-rct {
+  background-color: #c8e6c9 !important;
+  border-color: #a5d6a7 !important;
+  color: #555;
+  text-decoration: line-through;
+}
+
+.item-pending-rct {
+  background-color: #b2e0d6 !important;
+  border-color: #8dd3c7 !important;
+  color: #333;
+}
+
+.rct-item.rct-selected {
+    background: #93a0f0 !important;
+    border-color: #667eea !important;
+}
+
+/* Override default sidebar width if hidden */
+.react-calendar-timeline .rct-sidebar {
+    width: 0 !important;
+}
