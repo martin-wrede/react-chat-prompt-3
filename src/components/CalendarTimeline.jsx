@@ -8,7 +8,6 @@ import './CalendarTimeline.css';
 
 const CalendarTimeline = ({ roadmapData, onTaskUpdate }) => {
   const { data } = useContext(Context);
-  // The 'groups' state will now be dynamically populated
   const [groups, setGroups] = useState([]); 
   const [items, setItems] = useState([]);
   const [showCompleted, setShowCompleted] = useState(true);
@@ -18,7 +17,7 @@ const CalendarTimeline = ({ roadmapData, onTaskUpdate }) => {
   useEffect(() => {
     if (!roadmapData || !Array.isArray(roadmapData)) {
       setItems([]);
-      setGroups([]); // Also clear groups
+      setGroups([]);
       return;
     };
 
@@ -26,29 +25,51 @@ const CalendarTimeline = ({ roadmapData, onTaskUpdate }) => {
       ? roadmapData 
       : roadmapData.filter(task => !task.completed);
 
-    // --- 1. DYNAMICALLY CREATE GROUPS ---
-    // Create a unique group for each task. The task's name will be the row label.
-    const timelineGroups = filteredData.map(task => ({
+    // --- NEW: Ensure data is sorted for the look-ahead logic to work correctly ---
+    const sortedData = [...filteredData].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Dynamically create groups from the now sorted data
+    const timelineGroups = sortedData.map(task => ({
       id: task.id,
       title: task.task
     }));
     setGroups(timelineGroups);
 
-    // --- 2. CREATE ITEMS AND ASSIGN THEM TO THEIR GROUP ---
-    const timelineItems = filteredData.map(task => {
+    // --- UPDATED: Create items and calculate visual duration ---
+    const timelineItems = sortedData.map((task, index, array) => {
       const startMoment = moment(task.date).set({ 
           hour: parseInt((task.dailyStartTime || '10:00').split(':')[0]), 
           minute: parseInt((task.dailyStartTime || '10:00').split(':')[1]) 
       });
-      const endMoment = startMoment.clone().add(task.dailyHours || 1, 'hours');
+
+      // Default end time is based on the task's own duration.
+      let endMoment = startMoment.clone().add(task.dailyHours || 1, 'hours');
+
+      // --- LOGIC REPLICATED FROM TimelineChart.jsx ---
+      // Look ahead to the next task to determine if we should extend the visual duration.
+      const nextTask = array[index + 1];
+
+      // If there is a next task AND it's on a different day, extend the current task's bar.
+      if (nextTask && task.date !== nextTask.date) {
+        const nextTaskStartMoment = moment(nextTask.date).set({
+            hour: parseInt((nextTask.dailyStartTime || '10:00').split(':')[0]),
+            minute: parseInt((nextTask.dailyStartTime || '10:00').split(':')[1])
+        });
+        
+        // Set the visual end time of the current task to be the start time of the next task.
+        // We also check that this doesn't accidentally shorten the task.
+        if (nextTaskStartMoment.isAfter(endMoment)) {
+            endMoment = nextTaskStartMoment;
+        }
+      }
+      // --- END of replicated logic ---
 
       return {
         id: task.id,
-        // --- This is the key change: assign the item to its own group ---
         group: task.id, 
-        title: task.task, // The title is still useful for tooltips
+        title: task.task, 
         start_time: startMoment.valueOf(),
-        end_time: endMoment.valueOf(),
+        end_time: endMoment.valueOf(), // Use the potentially modified end time
         canMove: true,
         canResize: 'both',
         className: task.completed ? 'item-completed-rct' : 'item-pending-rct',
@@ -136,9 +157,8 @@ const CalendarTimeline = ({ roadmapData, onTaskUpdate }) => {
             onItemResize={handleItemResize}
             onItemSelect={handleItemSelect}
             onItemDoubleClick={handleItemSelect}
-            // --- 3. ENABLE THE SIDEBAR TO SHOW THE GROUP TITLES ---
-            sidebarWidth={300} // Set a width to make the sidebar visible
-            canMove={false} // Prevents vertical reordering of rows by dragging
+            sidebarWidth={300} 
+            canMove={false}
           >
             <TimelineMarkers>
                 <TodayMarker />
