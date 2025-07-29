@@ -121,6 +121,9 @@ function App() {
     setRoadmapToday(todayTasks);
   }, [roadmapData, today]);
 
+// [THE FIX] Define the constant here
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
 const handleRoadmapUpdate = (updatedData) => {
     // This is the data coming from SVGTimeline, with .start and .end properties.
     // We need to convert it back to the format your app uses (.date and .durationDays).
@@ -401,8 +404,8 @@ const handleRoadmapUpdate = (updatedData) => {
           onTaskUpdate={handleRoadmapUpdate} 
         />
       </div>
-
-   <div id="part5" style={{ display: "block" }}>
+{/**
+    <div id="part6" style={{ display: "block" }}>
         
         <CalendarTimeline 
           roadmapData={roadmapData} 
@@ -410,12 +413,17 @@ const handleRoadmapUpdate = (updatedData) => {
         />
         
       </div> 
+
+ */}
+
       
-   <div id="part6" style={{ display: "block" }}>
+   <div id="part5" style={{ display: "block" }}>
         <h2>Interactive SVG Timeline</h2>
         <SVGTimeline 
          roadmapData={timelineCompatibleData} 
           onTaskUpdate={handleRoadmapUpdate} 
+
+           style={{ minWidth: "100%" }}
         />
             
       </div> 
