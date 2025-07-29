@@ -1,70 +1,90 @@
-// --- App.jsx (Corrected) ---
+// --- START OF FILE App.jsx ---
+
 import React, { useState, useEffect, useContext } from 'react';
- 
-import Form from './components/Form';
+ import Form from './components/Form';
+ import ChatInterface from './components/ChatInterface';
+
 import RoadmapEdit from './components/RoadmapEdit';
-import ChatInterface from './components/ChatInterface';
+import CalendarTimeline from './components/CalendarTimeline';
 import TimelineChart from './components/TimelineChart';
+
+import  SVGTimeline from './components/SVGTimeline';
+
+
 import { Context } from './Context';
 import * as fileUtils from './utils/fileUtils';
 import './App.css';
 
-const initialRoadmapData2 = [
-  { date: '2025-07-08', task: 'Schreibe Value Proposition: was bekommt der Users?', dailyStartTime: '10:00', dailyHours: 6, motivation: 'Drinks mit Kollegen' },
-  { date: '2025-06-18', task: 'Recherchiere 3 Landing Pages und schreib auf, was funktioniert.', dailyStartTime: '10:00', dailyHours: 6, motivation: 'Freunde anrufen' }
-];
 
-const initialRoadmapData = [];
- 
-
-/**
- * Calculates a future date based on a start date and a number of working days to offset.
- * @param {string} startDateString - The start date in 'YYYY-MM-DD' format.
- * @param {number} dayOffset - The number of working days to count forward (e.g., 5 means the 5th working day).
- * @param {string[]} workDays - An array of weekday names in English (e.g., ['monday', 'tuesday']).
- * @returns {string} The calculated date in 'YYYY-MM-DD' format.
- */
+// This function remains the same
 const calculateDateFromOffset = (startDateString, dayOffset, workDays) => {
-  // --- FIX START: Add a guard clause to prevent RangeError ---
-  // If the start date is not yet provided or no work days are selected, we can't calculate.
-  // Return today's date as a safe fallback to prevent the app from crashing.
   if (!startDateString || workDays.length === 0) {
       console.warn("calculateDateFromOffset called with invalid inputs. Falling back to today's date.");
       return new Date().toISOString().split('T')[0];
   }
-  // --- FIX END ---
- 
-  // Map string names to JavaScript's day numbers (Sun=0, Mon=1, Tue=2, etc.)
+
   const workDayNumbers = workDays.map(day => {
     const map = { monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6, sunday: 0 };
     return map[day];
   });
 
-  if (workDayNumbers.length === 0) {
-      // Avoid infinite loops if no work days are selected
-      return new Date().toISOString().split('T')[0];
-  }
-
   let currentDate = new Date(startDateString);
+  currentDate.setHours(12, 0, 0, 0); 
   let daysCounted = 0;
-  let safetyNet = 0; // To prevent infinite loops in case of logic error
-
-  // Loop until we have found the target number of work days
+  let safetyNet = 0; 
+  
   while (daysCounted < dayOffset && safetyNet < 3650) {
-    if (daysCounted > 0 || !workDayNumbers.includes(currentDate.getDay())) {
-       // Only advance the date if it's not the very first day OR if the start date itself is not a workday
-       currentDate.setDate(currentDate.getDate() + 1);
-    }
-    
-    // Check if the new current day is a workday
     if (workDayNumbers.includes(currentDate.getDay())) {
       daysCounted++;
+    }
+    if (daysCounted < dayOffset) {
+      currentDate.setDate(currentDate.getDate() + 1);
     }
     safetyNet++;
   }
   return currentDate.toISOString().split('T')[0];
 };
-// --- CHANGE END ---
+
+/**
+ * UPDATED FUNCTION: Rescales task day_offsets to fit a target duration.
+ * Now handles both stretching and compressing the timeline.
+ * @param {Array} tasks - The array of task objects from the AI.
+ * @param {number} targetTotalWorkDays - The total number of work days the plan should cover.
+ * @returns {Array} The tasks with their day_offset values recalculated.
+ */
+const rescaleTaskOffsets = (tasks, targetTotalWorkDays) => {
+  if (!tasks || tasks.length === 0) {
+    return [];
+  }
+
+  const offsets = tasks.map(t => t.day_offset);
+  const minAiDay = Math.min(...offsets);
+  const maxAiDay = Math.max(...offsets);
+  // Ensure aiPlanDuration is at least 1 to avoid division by zero
+  const aiPlanDuration = Math.max(1, maxAiDay - minAiDay + 1);
+
+  // --- THIS IS THE KEY CHANGE ---
+  // The old logic prevented compression. This new logic allows it.
+  // We only skip rescaling if the plan is a single day or already matches the target.
+  if (aiPlanDuration === 1 || aiPlanDuration === targetTotalWorkDays) {
+    return tasks;
+  }
+  
+  const rescaledTasks = tasks.map(task => {
+    // How far through the AI plan is this task (from 0.0 to 1.0)?
+    // If the plan is 1 day long, avoid division by zero.
+    const relativePosition = aiPlanDuration > 1 
+      ? (task.day_offset - minAiDay) / (aiPlanDuration - 1)
+      : 0;
+    
+    // Map that relative position onto the new timeline (stretching or compressing)
+    const newOffset = 1 + Math.round(relativePosition * (targetTotalWorkDays - 1));
+    
+    return { ...task, day_offset: newOffset };
+  });
+
+  return rescaledTasks;
+};
 
 
 function App() {
@@ -72,17 +92,16 @@ function App() {
 
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] =useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [gesamtPrompt, setGesamtPrompt] = useState("");
-  const [roadmapData, setRoadmapData] = useState(initialRoadmapData);
+  const [roadmapData, setRoadmapData] = useState([]);
   const [roadmapToday, setRoadmapToday] = useState([]);
   const [roadmapContext, setRoadmapContext] = useState('');
   
-  // --- CHANGE START: Add state for start date and work days ---
   const [projectStartDate, setProjectStartDate] = useState('');
   const [workDays, setWorkDays] = useState(['monday', 'tuesday', 'wednesday', 'thursday', 'friday']);
-  // --- CHANGE END ---
+  const [projectPeriod, setProjectPeriod] = useState(4); 
 
   const params = new URLSearchParams(location.search);
   const part1 = params.get('part1');
@@ -107,7 +126,6 @@ function App() {
     setRoadmapData(updatedData);
   };
 
-  // --- CHANGE START: Update processAIResponse to use the new logic ---
   const processAIResponse = (content) => {
     const defaultMotivation = data?.chat_defaultMotivation || 'Erreiche dein Ziel!';
     const icsContents = fileUtils.extractIcsContent(content);
@@ -118,15 +136,19 @@ function App() {
     if (jsonContents.length > 0) {
       jsonContents.forEach(jsonString => {
          try {
-            const tasksWithOffsets = JSON.parse(jsonString);
+            let tasksWithOffsets = JSON.parse(jsonString);
+
             if (Array.isArray(tasksWithOffsets)) {
-              const newEvents = tasksWithOffsets.map(task => ({
-                // The AI gives us task, day_offset, dailyHours
+              // Calculate the total number of work days the user wants the project to span
+              const targetTotalWorkDays = projectPeriod * workDays.length;
+              
+              // Rescale the AI's plan to fit the user's desired duration
+              const rescaledTasks = rescaleTaskOffsets(tasksWithOffsets, targetTotalWorkDays);
+
+              const newEvents = rescaledTasks.map(task => ({
                 task: task.task,
                 dailyHours: task.dailyHours || 1,
-                // We calculate the real date using our robust function
                 date: calculateDateFromOffset(projectStartDate, task.day_offset, workDays), 
-                // We fill in the rest
                 dailyStartTime: task.dailyStartTime || '10:00',
                 motivation: task.motivation || defaultMotivation, 
               }));
@@ -134,18 +156,26 @@ function App() {
             }
           } catch (e) {
             console.error("Failed to parse AI JSON response:", e);
-            // Optionally, inform the user about the parsing error
+            setMessages(prev => [...prev, { role: 'system', content: `Error: The AI's response was not in the expected format and could not be imported. Please try again. Details: ${e.message}` }]);
           }
       });
     } else if (icsContents.length > 0) {
-      // Fallback for old ICS logic
       icsContents.forEach(ics => {
         allNewEvents.push(...fileUtils.parseIcsToRoadmapData(ics, defaultMotivation));
       });
     }
 
     if (allNewEvents.length > 0) {
-      allNewEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+      // Sort first by date, then by original task order to keep clustered tasks sequential
+      allNewEvents.sort((a, b) => {
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        if (dateA !== dateB) {
+            return dateA - dateB;
+        }
+        // If dates are the same, we don't have an original index, so keep it stable.
+        return 0;
+      });
       setRoadmapData(allNewEvents);
       setTimeout(() => {
         const successMessage = (data?.chat_autoImportSuccess || 'Automatisch {count} Termine importiert!').replace('{count}', allNewEvents.length);
@@ -157,113 +187,127 @@ function App() {
     const jsonDownloadLinks = jsonContents.map((json, i) => fileUtils.createJsonDownloadLink(json, `roadmap-${i+1}.json`));
     
     return {
-      content: content.replace(/```json\n?([\s\S]*?)```/, "✅ Plan successfully imported! See the updated roadmap below."),
+      content: content.replace(/```json\n?([\s\S]*?)```/g, "✅ Plan successfully imported! See the updated roadmap and timeline below."),
       downloadLinks: [...jsonDownloadLinks, ...icsDownloadLinks],
       importedEvents: allNewEvents.length,
     };
   };
-  // --- CHANGE END ---
 
-  
-    const handleFileUpload = async (event) => {
-      const files = Array.from(event.target.files);
-      for (const file of files) {
-        try {
-          const content = await file.text();
-          let fileType = 'text';
-          let parsedEvents = [];
-          const defaultMotivation = data?.chat_defaultMotivation || 'Erreiche dein Ziel!';
-  
-          if (file.name.endsWith('.ics')) {
-            fileType = 'calendar';
-            parsedEvents = fileUtils.parseIcsToRoadmapData(content, defaultMotivation);
-          } else if (file.name.endsWith('.json')) {
-            fileType = 'json';
-            parsedEvents = fileUtils.parseJsonToRoadmapData(content, defaultMotivation);
-          }
-  
-          if (parsedEvents.length > 0) {
-            setRoadmapData(parsedEvents);
-          }
-  
-          setUploadedFiles(prev => [...prev, {
-            id: Date.now() + Math.random(), name: file.name, content, type: fileType, size: file.size
-          }]);
-        } catch (error) {
-          console.error('Error reading file:', error);
-        }
-      }
-      event.target.value = '';
-    };
-  
-    const sendMessage = async () => {
-      if (!inputMessage.trim() && uploadedFiles.length === 0) return;
-  
-      const fileContext = uploadedFiles.map(f => `[Datei: ${f.name}]\n${f.content}`).join('\n\n---\n\n');
-      const messageContent = `${inputMessage}\n\n${fileContext}`.trim();
-      const userMessage = { role: 'user', content: messageContent };
-      
-      const conversationHistory = [...messages]; 
-  
-      setMessages(prev => [...prev, userMessage]);
-      setInputMessage('');
-      setIsLoading(true);
-  
+  const handleFileUpload = async (event) => {
+    const files = Array.from(event.target.files);
+    for (const file of files) {
       try {
-        const response = await fetch('/ai', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: messageContent,
-            messages: conversationHistory,
-            files: uploadedFiles,
-            prompt: gesamtPrompt,
-             roadmap: roadmapContext,
-          }),
-        });
-        
-         if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Server responded with ${response.status}: ${errorText}`);
+        const content = await file.text();
+        let fileType = 'text';
+        let parsedEvents = [];
+        const defaultMotivation = data?.chat_defaultMotivation || 'Erreiche dein Ziel!';
+
+        if (file.name.endsWith('.ics')) {
+          fileType = 'calendar';
+          parsedEvents = fileUtils.parseIcsToRoadmapData(content, defaultMotivation);
+        } else if (file.name.endsWith('.json')) {
+          fileType = 'json';
+          parsedEvents = fileUtils.parseJsonToRoadmapData(content, defaultMotivation);
         }
-  
-        const responseData = await response.json();
-        const aiContent = responseData.choices?.[0]?.message?.content || 'Fehler: Keine Antwort erhalten.';
-        
-        const processed = processAIResponse(aiContent);
-        const assistantMessage = { role: 'assistant', ...processed };
-  
-        setMessages(prev => [...prev, assistantMessage]);
-  
+
+        if (parsedEvents.length > 0) {
+          setRoadmapData(parsedEvents);
+        }
+
+        setUploadedFiles(prev => [...prev, {
+          id: Date.now() + Math.random(), name: file.name, content, type: fileType, size: file.size
+        }]);
       } catch (error) {
-        console.error("Error sending message:", error);
-        setMessages(prev => [...prev, { role: 'assistant', content: `Fehler bei der Verarbeitung Ihrer Anfrage. Details: ${error.message}` }]);
-      } finally {
-        setIsLoading(false);
+        console.error('Error reading file:', error);
       }
+    }
+    event.target.value = '';
+  };
+
+  const sendMessage = async () => {
+    if (!inputMessage.trim() && uploadedFiles.length === 0) return;
+
+    const fileContext = uploadedFiles.map(f => `[Datei: ${f.name}]\n${f.content}`).join('\n\n---\n\n');
+    const messageContent = `${inputMessage}\n\n${fileContext}`.trim();
+    const userMessage = { role: 'user', content: messageContent };
+    
+    const conversationHistory = [...messages]; 
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputMessage('');
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: messageContent,
+          messages: conversationHistory,
+          files: uploadedFiles,
+          prompt: gesamtPrompt,
+          roadmap: roadmapContext,
+        }),
+      });
+      
+       if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Server responded with ${response.status}: ${errorText}`);
+      }
+
+      const responseData = await response.json();
+      const aiContent = responseData.choices?.[0]?.message?.content || 'Fehler: Keine Antwort erhalten.';
+      
+      const processed = processAIResponse(aiContent);
+      const assistantMessage = { role: 'assistant', ...processed };
+
+      setMessages(prev => [...prev, assistantMessage]);
+
+    } catch (error) {
+      console.error("Error sending message:", error);
+      setMessages(prev => [...prev, { role: 'assistant', content: `Fehler bei der Verarbeitung Ihrer Anfrage. Details: ${error.message}` }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const deleteFile = (fileId) => {
+    setUploadedFiles(prev => prev.filter(file => file.id !== fileId));
+  };
+
+  // In App.jsx, before rendering
+const timelineCompatibleData = roadmapData.map((task, index) => {
+    const startDate = new Date(task.date);
+    // Assuming duration is 1 day for simplicity. Adjust as needed.
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + (task.durationDays || 1) -1);
+
+    return {
+      ...task,
+      id: task.id || `task-${index}`,
+      track: index + 1, // SVG timeline needs a track number
+      start: task.date,
+      end: endDate.toISOString().split('T')[0],
+      color: ['#3ecf8e', '#ffc107', '#ff7043', '#42a5f5'][index % 4] // Example colors
     };
-  
-    const deleteFile = (fileId) => {
-      setUploadedFiles(prev => prev.filter(file => file.id !== fileId));
-    };
-  
+});
+
 
   return (
     <div className="app-container">
       <div id="part1" style={{ display: part1 }}>
         <h2>{data?.app_Headline1}</h2>
         <div id="form-all-id">
-          {/* --- CHANGE START: Pass the new setters to the Form --- */}
           <Form 
             onPromptChange={setGesamtPrompt} 
             onStartDateChange={setProjectStartDate}
             onWorkDaysChange={setWorkDays}
+            onPeriodChange={setProjectPeriod} 
           />
-          {/* --- CHANGE END --- */}
         </div>
         {gesamtPrompt && (
           <div className="active-prompt-display">
-            <strong>{data?.chat_activePromptLabel || 'Aktiver Prompt'}:</strong> {gesamtPrompt.substring(0, 200)}...
+            <strong>{data?.chat_activePromptLabel || 'Aktiver Prompt'}:</strong> Ready to generate plan.
           </div>
         )}
         
@@ -279,43 +323,59 @@ function App() {
             sendMessage={sendMessage}
         />
       </div>
-{gesamtPrompt}
-    <div id="part2" style={{ display: part2 }}>
-           {roadmapToday.length > 0 ? (
-             <RoadmapEdit titleDisplay2='block' titleDisplay3='none' roadmapData={roadmapToday} isToday={true} />
-           ) : (
-             <div className="info-box">
-               {(data?.chat_noTasksToday || 'No Tasks for today! ({today})').replace('{today}', today)}
-             </div>
-           )}
-         </div>
-   
-         <div id="part3" style={{ display: part3 }}>
-           <h2>{data?.app_Headline3}</h2>
-           <p className="info-box">
-             <strong>ℹ️ {data?.chat_infoLabel || 'Info'}:</strong>
-             {' '}
-             {(data?.chat_roadmapInfo || 'Der Projektplan wird automatisch aktualisiert, wenn die KI Kalenderdaten erstellt. Aktuell werden {count} Termine angezeigt.').replace('{count}', roadmapData.length)}
-           </p>
-           <RoadmapEdit
-             roadmapData={roadmapData}
-             onRoadmapUpdate={handleRoadmapUpdate}
-             titleDisplay2='none'
-             titleDisplay3='block'
-           />
-         </div>
+
+      <div id="part2" style={{ display: part2 }}>
+        {roadmapToday.length > 0 ? (
+          <RoadmapEdit titleDisplay2='block' titleDisplay3='none' roadmapData={roadmapToday} isToday={true} />
+        ) : (
+          <div className="info-box">
+            {(data?.chat_noTasksToday || 'No Tasks for today! ({today})').replace('{today}', today)}
+          </div>
+        )}
+      </div>
+
+      <div id="part3" style={{ display: part3 }}>
+        <h2>{data?.app_Headline3}</h2>
+        <p className="info-box">
+          <strong>ℹ️ {data?.chat_infoLabel || 'Info'}:</strong>
+          {' '}
+          {(data?.chat_roadmapInfo || 'Der Projektplan wird automatisch aktualisiert, wenn die KI Kalenderdaten erstellt. Aktuell werden {count} Termine angezeigt.').replace('{count}', roadmapData.length)}
+        </p>
+        <RoadmapEdit
+          roadmapData={roadmapData}
+          onRoadmapUpdate={handleRoadmapUpdate}
+          titleDisplay2='none'
+          titleDisplay3='block'
+        />
+      </div>
+     
+      <div id="part4" style={{ display: "block" }}>
+        <TimelineChart 
+          roadmapData={roadmapData} 
+          onTaskUpdate={handleRoadmapUpdate} 
+        />
+      </div>
+
+   <div id="part5" style={{ display: "block" }}>
         
-   
-   
-   <div id="part4" style={{ display: "block" }}>
-     <TimelineChart 
-       roadmapData={roadmapData} 
-       onTaskUpdate={handleRoadmapUpdate} 
-     />
-   </div>
-   
-       </div>
-     );
-   }
-   
-   export default App;
+        <CalendarTimeline 
+          roadmapData={roadmapData} 
+          onTaskUpdate={handleRoadmapUpdate} 
+        />
+        
+      </div> 
+      
+   <div id="part6" style={{ display: "block" }}>
+        <h2>Interactive SVG Timeline</h2>
+        <SVGTimeline 
+          roadmapData={roadmapData} 
+          onTaskUpdate={handleRoadmapUpdate} 
+        />
+        
+      </div> 
+      
+    </div>
+  );
+}
+
+export default App;

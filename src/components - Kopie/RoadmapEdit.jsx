@@ -1,3 +1,5 @@
+// --- START OF FILE RoadmapEdit.jsx ---
+
 import React, { useState, useContext, useEffect } from 'react';
 import './Roadmap.css';
 import './RoadmapEdit.css'; // Your dedicated CSS for edit components
@@ -22,6 +24,7 @@ const formatDate = (dateStr, language = 'de') => {
 };
 
 const calculateEndTime = (startTime, hours) => {
+  if (!startTime) return 'N/A';
   const [startHour, startMinute] = startTime.split(':').map(Number);
   const totalMinutes = startHour * 60 + startMinute + (hours * 60);
   const endHour = Math.floor(totalMinutes / 60);
@@ -30,15 +33,16 @@ const calculateEndTime = (startTime, hours) => {
 };
 
 const formatDateForInput = (dateStr) => {
+  if (!dateStr) return '';
   const date = new Date(dateStr);
   return date.toISOString().split('T')[0];
 };
-f
-// ICS and Google Calendar functions now use item.id
+
 const generateICS = (roadmapData, labels) => {
   const icsHeader = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//AI Coach//Roadmap//EN\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH`;
   const icsFooter = `END:VCALENDAR`;
   const events = roadmapData.map(item => {
+    if (!item.date) return ''; // Skip tasks without a date
     const date = new Date(item.date);
     const [startHour, startMinute] = (item.dailyStartTime || '10:00').split(':').map(Number);
     const duration = item.dailyHours || 1;
@@ -56,7 +60,9 @@ const generateICS = (roadmapData, labels) => {
   return `${icsHeader}\n${events}${icsFooter}`;
 };
 
-const generateGoogleCalendarUrl = (task, data, completedTasks) => {
+// --- FIX #2: UPDATED FUNCTION ---
+// The function no longer needs `completedTasks`. It gets the status from `task.completed`.
+const generateGoogleCalendarUrl = (task, data) => {
   const labels = data.roadmapLabels;
   const date = new Date(task.date);
   const [startHour, startMinute] = (task.dailyStartTime || '10:00').split(':').map(Number);
@@ -67,9 +73,12 @@ const generateGoogleCalendarUrl = (task, data, completedTasks) => {
   endDate.setTime(startDate.getTime() + (duration * 60 * 60 * 1000));
   const startDateStr = startDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
   const endDateStr = endDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-  const isCompleted = completedTasks.has(task.id);
+  
+  // The completion status now comes directly from the task object
+  const isCompleted = !!task.completed; 
   const prefix = isCompleted ? '✅ ' : '';
   const label = isCompleted ? '[Completed] ' : '';
+
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text: `${prefix}${labels?.calendarEventPrefix || ''}: ${task.task}`,
@@ -83,49 +92,38 @@ const generateGoogleCalendarUrl = (task, data, completedTasks) => {
 // Main Roadmap Component
 export default function Roadmap({ roadmapData, onRoadmapUpdate, titleDisplay2, titleDisplay3 }) {
   const { data } = useContext(Context);
-  const [completedTasks, setCompletedTasks] = useState(new Set());
-  const [editingTask, setEditingTask] = useState(null); // Stores the ID of the task being edited
+  const [editingTask, setEditingTask] = useState(null);
   const [editedData, setEditedData] = useState({});
   const [localTasks, setLocalTasks] = useState([]);
   const [confirmationDialog, setConfirmationDialog] = useState(null);
 
   useEffect(() => {
-    const initialTasks = (roadmapData || data.sampleRoadmapData || []).map((task, index) => ({
+    const initialTasks = (roadmapData || []).map((task, index) => ({
       ...task,
-      id: task.id || `task-${new Date(task.date).getTime()}-${index}`
+      id: task.id || `task-${new Date(task.date).getTime()}-${index}-${Math.random()}`,
+      completed: !!task.completed,
     }));
     setLocalTasks(initialTasks);
-  }, [roadmapData, data.sampleRoadmapData]);
-  
-  const currentRoadmapData = localTasks.map(item => ({
-    ...item,
-    completed: completedTasks.has(item.id),
-  }));
+  }, [roadmapData]);
 
-// Also, ensure the completed status is part of the initial data structure passed up.
-// Find the addNewTask function and make this small adjustment.
-const addNewTask = () => {
+  // --- FIX #1: DEFINE currentRoadmapData ---
+  // This variable was missing. It's simply our local, state-managed list of tasks.
+  const currentRoadmapData = localTasks;
+
+  const addNewTask = () => {
     const newId = `task-${Date.now()}`;
     const newTask = {
       id: newId,
       date: new Date().toISOString().split('T')[0],
       dailyStartTime: '10:00',
       dailyHours: 1,
-      task: '',
+      task: 'New Task',
       motivation: '',
-      completed: false, // Explicitly add the completed property
+      completed: false,
     };
-    // The rest of the function remains the same...
     const updatedTasks = [...localTasks, newTask].sort((a, b) => new Date(a.date) - new Date(b.date));
-    setLocalTasks(updatedTasks);
     if (onRoadmapUpdate) onRoadmapUpdate(updatedTasks);
     startEditing(newTask);
-};
-
-  const toggleTaskComplete2 = (id) => {
-    const newCompleted = new Set(completedTasks);
-    newCompleted.has(id) ? newCompleted.delete(id) : newCompleted.add(id);
-    setCompletedTasks(newCompleted);
   };
 
   const startEditing = (task) => {
@@ -139,58 +137,45 @@ const addNewTask = () => {
     });
   };
 
-  // Find this existing function
-const toggleTaskComplete = (id) => {
-    const newCompleted = new Set(completedTasks);
-    newCompleted.has(id) ? newCompleted.delete(id) : newCompleted.add(id);
-    setCompletedTasks(newCompleted);
-    
-    // --- ADD THIS LOGIC ---
-    // After updating the local 'completed' set, we must inform the parent.
-    // We construct the full, updated data array and send it up.
+  const toggleTaskComplete = (id) => {
     if (onRoadmapUpdate) {
-      const updatedTasks = localTasks.map(task => ({
-        ...task,
-        completed: newCompleted.has(task.id), // Use the newly updated set
-      }));
+      const updatedTasks = localTasks.map(task =>
+        task.id === id ? { ...task, completed: !task.completed } : task
+      );
       onRoadmapUpdate(updatedTasks);
     }
-    // --- END OF ADDED LOGIC ---
-};
+  };
 
   const cancelEditing = () => {
     setEditingTask(null);
     setEditedData({});
   };
 
-// Lastly, let's ensure the `completed` flag is always included when saving.
-// Find the saveTask function.
-const saveTask = (idToSave) => {
+  const saveTask = (idToSave) => {
     const updatedTasks = localTasks.map(task =>
       task.id === idToSave 
-        ? { ...task, ...editedData, completed: completedTasks.has(idToSave) } // Ensure completed status is preserved
+        ? { ...task, ...editedData }
         : task
     ).sort((a, b) => new Date(a.date) - new Date(b.date));
-    setLocalTasks(updatedTasks);
     if (onRoadmapUpdate) onRoadmapUpdate(updatedTasks);
     setEditingTask(null);
     setEditedData({});
   };
 
-
   const showDeleteConfirmation = (task) => setConfirmationDialog({ task });
   const cancelDelete = () => setConfirmationDialog(null);
+
+  
+  // --- UPDATED: Total hours calculation now considers duration in days ---
+   const totalHours = currentRoadmapData.reduce((sum, item) => {
+     const duration = item.durationDays || 1;
+    return sum + ((item.dailyHours || 0) * duration);
+  }, 0);
 
   const confirmDelete = () => {
     if (!confirmationDialog) return;
     const { id } = confirmationDialog.task;
-    if (completedTasks.has(id)) {
-      const newCompleted = new Set(completedTasks);
-      newCompleted.delete(id);
-      setCompletedTasks(newCompleted);
-    }
     const updatedTasks = localTasks.filter(t => t.id !== id);
-    setLocalTasks(updatedTasks);
     if (onRoadmapUpdate) onRoadmapUpdate(updatedTasks);
     setConfirmationDialog(null);
   };
@@ -215,10 +200,8 @@ const saveTask = (idToSave) => {
     document.addEventListener('keydown', handleEscKey);
     return () => document.removeEventListener('keydown', handleEscKey);
   }, [confirmationDialog]);
-  
-  const totalHours = currentRoadmapData.reduce((sum, item) => sum + (item.dailyHours || 0), 0);
-  const completedHours = currentRoadmapData.filter(item => item.completed).reduce((sum, item) => sum + (item.dailyHours || 0), 0);
-  const avgHoursPerDay = currentRoadmapData.length > 0 ? totalHours / currentRoadmapData.length : 0;
+
+ 
   const language = data.language || 'de';
 
   return (
@@ -237,7 +220,7 @@ const saveTask = (idToSave) => {
         </div>
       )}
 
-      <div className="header">
+       <div className="header">
         <div className="headerTitle"
        
         >
@@ -264,59 +247,72 @@ const saveTask = (idToSave) => {
           const endTime = calculateEndTime(currentData.dailyStartTime || '10:00', currentData.dailyHours || 1);
           
           return (
-      <div key={item.id} className={`card ${isCompleted ? 'cardCompleted' : ''}`}>
-             
-    <div className="cardHeader">
-
-        {/* --- 1. The Date Display (First Child) --- */}
-        <div className="dateInfo">
-          {isEditing ? (
-            <div className="editable-date-container">
-              <input type="date" value={formatDateForInput(currentData.date)} onChange={(e) => updateEditedData('date', e.target.value)} className="date-input" />
-            </div>
-          ) : (
-            <>
-              <div className="dayName">{dateInfo.dayName}</div>
-              <div className="day">{dateInfo.day}</div>
-              <div className="monthYear">{dateInfo.month} {dateInfo.year}</div>
-            </>
-          )}
-        </div>
-
-        {/* --- 2. The Centered Complete Button (Second Child) --- */}
-        <button
-            onClick={() => toggleTaskComplete(item.id)}
-            className={`icon-button complete-button-edit header-center-button ${isCompleted ? 'active' : 'inactive'}`}
-            title={isCompleted ? "Mark as Incomplete" : "Mark as Complete"}
-        >
-            {isCompleted ? '✅' : '⭕'}
-        </button>
-
-        {/* --- 3. The Delete Button (Third Child) --- */}
-        <button
-            onClick={() => showDeleteConfirmation(item)}
-            className="icon-button delete-button"
-            title="Delete"
-        >
-            🗑️
-        </button>
-        </div>
-
-    {/* The rest of your component remains the same... */}
-    <div className="card-header-controls">
+            <div key={item.id} className={`card ${isCompleted ? 'cardCompleted' : ''}`}>
+              <div className="cardHeader">
+                <div className="dateInfo">
+                  {isEditing ? (
+                    <div className="editable-date-container">
+                      <input type="date" value={formatDateForInput(currentData.date)} onChange={(e) => updateEditedData('date', e.target.value)} className="date-input" />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="dayName">{dateInfo.dayName}</div>
+                      <div className="day">{dateInfo.day}</div>
+                      <div className="monthYear">{dateInfo.month} {dateInfo.year}</div>
+                    </>
+                  )}
                 </div>
 
-                
-                <div className="card-header-controls" 
-              >
-                
-                </div>
-             
+                <button
+                    onClick={() => toggleTaskComplete(item.id)}
+                    className={`icon-button complete-button-edit header-center-button ${isCompleted ? 'active' : 'inactive'}`}
+                    title={isCompleted ? "Mark as Incomplete" : "Mark as Complete"}
+                >
+                    {isCompleted ? '✅' : '⭕'}
+                </button>
 
-              
+                <button
+                    onClick={() => showDeleteConfirmation(item)}
+                    className="icon-button delete-button"
+                    title="Delete"
+                >
+                    🗑️
+                </button>
+              </div>
+
               <div className="timeSection">
                 <div className="timeInfo">
                   <div className="timeLabel">{data.roadmapLabels?.startTimeLabel || 'START TIME'}</div>
+              
+                               {/* --- UPDATED: Label changed for clarity --- */}
+                 <div className="timeLabel">{data.roadmapLabels?.dailyStartTimeLabel || 'DAILY START TIME'}</div>
+                   {isEditing ? (
+                     <input type="time" value={currentData.dailyStartTime || '10:00'} onChange={(e) => updateEditedData('dailyStartTime', e.target.value)} className="time-input" />
+                   ) : (
+                     <div className="timeValue">{currentData.dailyStartTime || '10:00'}</div>
+                   )}
+                 </div>
+                 {/* --- NEW: Duration in Days field --- */}
+                <div className="timeInfo">
+                  <div className="timeLabel">{data.roadmapLabels?.durationDaysLabel || 'DURATION (DAYS)'}</div>
+                  {isEditing ? (
+                     <div className="duration-input-container">
+                       <input type="number" value={currentData.durationDays || 1} onChange={(e) => updateEditedData('durationDays', parseInt(e.target.value, 10) || 1)} className="number-input" min="1" step="1" />
+                     </div>
+                  ) : (
+                    <div className="timeValue">{currentData.durationDays || 1} day(s)</div>
+                  )}
+                </div>
+                 <div className="timeInfo">
+                  <div className="timeLabel">{data.roadmapLabels?.endTimeLabel || 'END TIME'}</div>
+                  <div className="timeValue">{endTime}</div>
+                </div>
+                <div className="timeInfo">
+                  <div className="timeLabel">{data.roadmapLabels?.durationLabel || 'DURATION'}</div>
+                  {/* --- UPDATED: This now represents daily duration, not total --- */}
+                  <div className="timeLabel">{data.roadmapLabels?.dailyDurationLabel || 'DAILY DURATION'}</div>
+                
+            
                   {isEditing ? (
                     <input type="time" value={currentData.dailyStartTime || '10:00'} onChange={(e) => updateEditedData('dailyStartTime', e.target.value)} className="time-input" />
                   ) : (
@@ -367,8 +363,10 @@ const saveTask = (idToSave) => {
                   <div className="motivationText">{currentData.motivation}</div>
                 )}
               </div>
-
-              <a href={generateGoogleCalendarUrl(item, data, completedTasks)} target="_blank" rel="noopener noreferrer" className="googleCalendarLink">
+                
+              {/* --- FIX #3: UPDATED FUNCTION CALL --- */}
+              {/* Removed the undefined `completedTasks` argument */}
+              <a href={generateGoogleCalendarUrl(item, data)} target="_blank" rel="noopener noreferrer" className="googleCalendarLink">
                 📅 {data.roadmapLabels?.addToCalendar || 'Add to Google Calendar'}
               </a>
             </div>

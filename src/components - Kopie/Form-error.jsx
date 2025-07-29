@@ -1,14 +1,12 @@
-// --- START OF FILE Form.jsx ---
-
 import React, { useState, useContext } from "react";
 import { Context } from '../Context';
 
-export default function Form({ onPromptChange, onStartDateChange, onWorkDaysChange }) {
+export default function Form(props) {
   const [age, setAge] = useState(20);
-  const [gender, setGender ] = useState("männlich");
+  const [gender, setGender] = useState("männlich");
   const [country, setCountry] = useState("Deutschland");
 
-  const { data, language } = useContext(Context);
+  const { data, language } = useContext(Context); // ✅ Get language from context
 
   const [promptInfo, setPromptInfo] = useState({
     problem: "",
@@ -22,7 +20,7 @@ export default function Form({ onPromptChange, onStartDateChange, onWorkDaysChan
     industry: ""
   });
 
-  const [generatedPromptMessage, setGeneratedPromptMessage] = useState("");
+  const [gesamtPrompt, setGesamtPrompt] = useState("");
 
   const weekDays = [
     { id: 'monday', label: data.workDays?.monday || 'Montag', short: data.workDaysShort?.monday || 'Mo' },
@@ -44,63 +42,71 @@ export default function Form({ onPromptChange, onStartDateChange, onWorkDaysChan
     );
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
+
     const formData = new FormData(event.target);
 
-    // 1. Get all the data from the form
-    const problem = formData.get("problem");
-    const solution = formData.get("solution");
-    const result = formData.get("result");
-    const period = formData.get("period");
-    const startDate = formData.get("startDate");
-    const dailyStartTime = formData.get("dailyStartTime");
-    const dailyHours = formData.get("dailyHours");
-    const industry = formData.get("industry");
-    
+    setPromptInfo({
+      problem: formData.get("problem"),
+      solution: formData.get("solution"),
+      result: formData.get("result"),
+      period: formData.get("period"),
+      startDate: formData.get("startDate"),
+      dailyStartTime: formData.get("dailyStartTime"),
+      dailyHours: formData.get("dailyHours"),
+      workDays: workDays,
+      industry: formData.get("industry"),
+    });
+
+    const AIRole = data.aiRolePrompt;
+    const AIROle2 = data.aiRolePrompt2;
+
     const workDaysString = workDays.map(dayId =>
       weekDays.find(day => day.id === dayId)?.label
     ).join(', ');
 
-    // 2. Define the new, precise instructions for the AI's output format
-    const aiOutputInstructions = `
-IMPORTANT: Your response MUST be ONLY a valid JSON array of task objects. Do not add any text, explanations, or markdown before or after the JSON.
-Each object in the array represents a single task and must have these exact keys:
-- "task": A string describing the task.
-- "day_offset": A number representing the project day this task falls on (e.g., 1, 2, 3...). Calculate this based on the user's goal, period, and available work days. Day 1 is the first available work day.
-- "dailyHours": A number for the hours required for this task.
-- "dailyStartTime": A string for the start time of the task (e.g., "${dailyStartTime}").
-- "motivation": A short, motivating sentence for completing the task.
-
-Example JSON output:
-\`\`\`json
-[
-  { "day_offset": 1, "task": "Initial research on competitors", "dailyHours": 4, "dailyStartTime": "${dailyStartTime}", "motivation": "A journey of a thousand miles begins with a single step!" },
-  { "day_offset": 2, "task": "Outline value proposition based on research", "dailyHours": 3, "dailyStartTime": "${dailyStartTime}", "motivation": "Clarity is power. Let's define our core message." }
-]
-\`\`\`
-`;
-
-    // 3. Construct the user's context for the AI
-    const userContext = data.promptTemplate.problem + problem
-      + data.promptTemplate.solution + solution
-      + data.promptTemplate.result + result
-      + data.promptTemplate.period + period
-      + data.promptTemplate.dailyStartTime + dailyStartTime
-      + data.promptTemplate.dailyHours + dailyHours
+    const prompt = data.promptTemplate.problem + formData.get("problem")
+      + data.promptTemplate.solution + formData.get("solution")
+      + data.promptTemplate.result + formData.get("result")
+      + data.promptTemplate.period + formData.get("period")
+      + data.promptTemplate.startDate + formData.get("startDate")
+      + data.promptTemplate.dailyStartTime + formData.get("dailyStartTime")
+      + data.promptTemplate.dailyHours + formData.get("dailyHours")
       + data.promptTemplate.workDays + workDaysString
-      + data.promptTemplate.industry + industry;
-    
-    // 4. Combine the role, user context, and output instructions into the final system prompt
-    const fullPrompt = (data.aiRolePrompt || "You are a helpful project manager.") + "\n\n" + userContext + "\n\n" + aiOutputInstructions;
+      + data.promptTemplate.industry + formData.get("industry");
 
-    // 5. Update the parent component (App.jsx) with the necessary info.
-    onPromptChange(fullPrompt);
-    onStartDateChange(startDate);
-    onWorkDaysChange(workDays);
+    const fullPrompt = AIRole + "\n\n" + prompt + AIRole2;
 
-    // 6. Set a confirmation message to display locally
-    setGeneratedPromptMessage(`✅ System-Prompt wurde generiert. Du kannst jetzt im Chat unten den Plan erstellen lassen (z.B. mit "Erstelle den Plan").`);
+    console.log("Sending prompt to AI:", fullPrompt);
+    console.log("Language passed to AI:", language);
+
+    try {
+      const response = await fetch("/functions/ai", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: fullPrompt,
+          lang: language,
+        }),
+      });
+
+      const result = await response.json();
+      console.log("AI response:", result);
+
+      setGesamtPrompt(result?.choices?.[0]?.message?.content || "");
+    } catch (error) {
+      console.error("AI error:", error);
+      setGesamtPrompt(
+        language === "en"
+          ? "Error retrieving AI response."
+          : "Fehler beim Abrufen der AI-Antwort."
+      );
+    }
+
+    props.onPromptChange(fullPrompt);
   };
 
   return (
@@ -167,20 +173,20 @@ Example JSON output:
         <label>
           <b>{data.question5}</b><br />
           <em>{data.question5Hint}</em><br />
-          <input type="date" name="startDate" defaultValue={new Date().toISOString().split('T')[0]} required />
+          <input type="date" name="startDate" required />
         </label>
         <br /><br />
 
         <label>
           <b>{data.question6}</b><br />
           <em>{data.question6Hint}</em><br />
-          <input type="time" name="dailyStartTime" defaultValue="09:00" required />
+          <input type="time" name="dailyStartTime" required />
         </label>
         <br /><br />
 
         <label>
           <b>{data.question7}</b><br />
-          <input type="number" name="dailyHours" min="1" max="12" defaultValue="4" required />
+          <input type="number" name="dailyHours" min="1" max="12" required />
         </label>
         <br /><br />
 
@@ -219,13 +225,13 @@ Example JSON output:
       </form>
 
       <br />
-      {generatedPromptMessage && (
-        <div style={{ marginTop: "2rem", whiteSpace: "pre-wrap", border: "1px solid #4CAF50", padding: "1rem", borderRadius: "8px", background: "#f0fff4", color: "#2E7D32" }}>
-          {generatedPromptMessage}
+     {gesamtPrompt && (
+        <div style={{ marginTop: "2rem", whiteSpace: "pre-wrap" }}>
+          <strong>{language === "en" ? "AI Response:" : "Antwort der KI:"}</strong><br />
+          {gesamtPrompt}
         </div>
       )}
     </div>
   );
 }
 
-// --- END OF FILE Form.jsx ---

@@ -1,0 +1,305 @@
+/* RoadmapEdit CSS - Centralized and Uniform Button Styles */
+
+/* Base class for all icon buttons to ensure uniform size and shape */
+.icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px; /* Uniform width */
+  height: 32px; /* Uniform height */
+  flex-shrink: 0;
+  padding: 0; /* Remove padding to rely on fixed size */
+  border: none;
+  border-radius: 8px; /* Uniform rounded corners */
+  cursor: pointer;
+  font-size: 16px; /* Uniform icon size
+  
+  */
+  transition: all 0.2s ease;
+}
+
+.icon-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Focus states for accessibility */
+.icon-button:focus {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+}
+
+/* --- Specific Button Styles (Color Definitions) --- */
+
+.edit-button {
+  background-color: transparent;
+  color: #6b7280;
+}
+
+.edit-button:hover {
+  background-color: #f3f4f6;
+  color: #4f46e5;
+}
+
+.save-button {
+  background-color: #dcfce7;
+  color: #059669;
+}
+
+.save-button:hover {
+  background-color: #bbf7d0;
+}
+
+.delete-button {
+  background-color: #fef2f2;
+  color: #dc2626;
+   background-color: #fef2f2;
+  color: #dc2626;
+  
+  /* --- ADD/ADJUST THESE --- */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px; /* A modest size increase */
+  line-height: 1;  /* Prevents extra vertical space */
+}
+
+
+.delete-button:hover {
+  background-color: #fee2e2;
+}
+
+.cancel-button {
+  background-color: #fef2f2; /* Same as delete for consistency */
+  color: #dc2626;
+}
+
+.cancel-button:hover {
+  background-color: #fee2e2;
+}
+
+/* Completion checkmark/circle button */
+.complete-button-edit.active {
+  background-color: #dcfce7;
+  color: #059669;
+}
+
+.complete-button-edit.inactive {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+/* --- Other Edit Mode Input and Component Styles --- */
+
+.edit-input {
+  padding: 4px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: white;
+  color: #1f2937;
+  width: 100%;
+}
+
+.edit-input:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+}
+
+.time-input,
+.number-input,
+.date-input {
+  padding: 2px 4px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 12px;
+  background-color: white;
+  color: #1f2937;
+  text-align: center;
+}
+
+.time-input:focus,
+.number-input:focus,
+.date-input:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+}
+
+.time-input { width: 60px; }
+.number-input { width: 50px; }
+.date-input { width: 120px; }
+
+.text-area {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: white;
+  color: #1f2937;
+  width: 100%;
+  resize: vertical;
+  min-height: 60px;
+  font-family: inherit;
+}
+
+.text-area:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+}
+
+.button-container {
+  display: flex;
+  gap: 8px; /* Added a bit more gap for better spacing */
+  align-items: center;
+}
+
+.editable-date-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.duration-input-container {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Center the input and label */
+  gap: 4px;
+}
+
+.duration-input-container span {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+/* --- Confirmation Dialog Styles (Unchanged) --- */
+.confirmation-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.confirmation-dialog {
+  background-color: white;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+}
+
+.confirmation-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #1f2937;
+  margin-bottom: 8px;
+}
+
+.confirmation-message {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.confirmation-task-preview {
+  font-size: 13px;
+  color: #374151;
+  background-color: #f9fafb;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  font-style: italic;
+}
+
+.confirmation-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.confirm-button {
+  padding: 10px 20px;
+  background-color: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+.confirm-button:hover {
+  background-color: #b91c1c;
+}
+
+.cancel-confirm-button {
+  padding: 10px 20px;
+  background-color: #f3f4f6;
+  color: #374151;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+.cancel-confirm-button:hover {
+  background-color: #e5e7eb;
+}
+
+ 
+
+.card {
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #4f46e5;
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative; /* <-- ADD THIS LINE */
+}
+
+.cardHeader {
+  position: relative; /* Establishes a positioning context for the center button */
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Pushes the date to the left and delete button to the right */
+  margin-bottom: 16px;
+}
+
+.leftHeader {
+  
+}
+
+/* --- ADD this new rule for the centered button --- */
+.header-center-button {
+  position: absolute;
+  left: 50%; /* Position the button's left edge at the center of the header */
+  transform: translateX(-50%); /* Shift the button left by half its own width to perfectly center it */
+}
+
+
+.rightHeader {
+   
+  gap: 8px;
+}
+
+ .header-button-group {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* This creates a small space between the two buttons */
+}

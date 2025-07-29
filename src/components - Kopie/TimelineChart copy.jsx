@@ -1,13 +1,13 @@
+// --- START OF FILE TimelineChart.jsx ---
+
 import React, { useState, useContext, useEffect } from 'react';
 import { Chart } from 'react-google-charts';
 import { Context } from '../Context';
 import './TimelineChart.css';
-import moment from 'moment'; // Import moment for date calculations
 
 const TimelineChart = ({ roadmapData, onTaskUpdate }) => {
   const { data } = useContext(Context);
   const [chartData, setChartData] = useState([]);
-  const [processedTasksForSummary, setProcessedTasksForSummary] = useState([]);
   const [viewMode, setViewMode] = useState('timeline'); // 'timeline' or 'gantt'
   const [selectedTask, setSelectedTask] = useState(null);
   const [showCompleted, setShowCompleted] = useState(true);
@@ -16,61 +16,48 @@ const TimelineChart = ({ roadmapData, onTaskUpdate }) => {
   useEffect(() => {
     if (!roadmapData || roadmapData.length === 0) {
       setChartData([]);
-      setProcessedTasksForSummary([]); // Clear summary data as well
       return;
     }
 
-    // Filter data first based on the "Show Completed" checkbox
     const filteredData = showCompleted 
       ? roadmapData 
       : roadmapData.filter(task => !task.completed);
 
-    // Sort data to ensure the look-ahead logic works correctly
-    const sortedData = [...filteredData].sort((a, b) => new Date(a.date) - new Date(b.date));
-
-    // This is the core of the new feature. We process tasks to calculate their visual end time and true total hours.
-    const processedTasks = sortedData.map((task, index) => {
-      const startDateTime = new Date(task.date);
+    // --- NEW LOGIC START ---
+    // This is the core of the new feature. We process tasks to calculate their visual end time.
+    const processedTasks = filteredData.map((task, index) => {
+      const taskDate = new Date(task.date);
       const [startHour, startMinute] = (task.dailyStartTime || '10:00').split(':').map(Number);
+      const durationHours = task.dailyHours || 1;
+
+      const startDateTime = new Date(taskDate);
       startDateTime.setHours(startHour, startMinute, 0, 0);
 
-      // Default end time is based on the task's own duration.
-      let endDateTime = new Date(startDateTime.getTime() + (task.dailyHours || 1) * 60 * 60 * 1000);
+      // Default end time is based on the task's own duration. This is the fallback.
+      let endDateTime = new Date(startDateTime.getTime() + durationHours * 60 * 60 * 1000);
 
       // Look ahead to the next task to determine if we should extend the visual duration.
-      const nextTask = sortedData[index + 1];
+      const nextTask = filteredData[index + 1];
 
-      // --- Logic for calculating visual length and total hours ---
-      let endDateForDayCounting = moment(task.date);
+      // If there is a next task AND it's on a different day, extend the current task's bar.
       if (nextTask && task.date !== nextTask.date) {
-        // This sets the visual bar length to extend to the next task's start time
         const nextTaskStartDate = new Date(nextTask.date);
         const [nextStartHour, nextStartMinute] = (nextTask.dailyStartTime || '10:00').split(':').map(Number);
         nextTaskStartDate.setHours(nextStartHour, nextStartMinute, 0, 0);
-        endDateTime = nextTaskStartDate;
         
-        // For our calculation, the duration ends on the day before the next task begins
-        endDateForDayCounting = moment(nextTask.date).subtract(1, 'day');
+        // Set the visual end time of the current task to be the start time of the next task.
+        endDateTime = nextTaskStartDate;
       }
-
-      // Calculate the number of days this task spans
-      const daysSpanned = Math.max(1, endDateForDayCounting.diff(moment(task.date), 'days') + 1);
-      // Calculate the true total hours for this task
-      const calculatedTotalHours = daysSpanned * (task.dailyHours || 1);
-      // --- End of calculation logic ---
+      // If the next task is on the same day, or this is the last task, the default end time is used.
 
       return {
         ...task, // Keep original task data
         startDateTime,
-        endDateTime,
-        calculatedTotalHours, // Store the correct total hours
+        endDateTime
       };
     });
-    
-    // Set the state for the summary to use for its calculation
-    setProcessedTasksForSummary(processedTasks);
+    // --- NEW LOGIC END ---
 
-    // --- Chart Data Formatting ---
     if (viewMode === 'timeline') {
       const timelineData = [
         [{ type: 'string', id: 'Task' }, { type: 'string', id: 'Name' }, { type: 'date', id: 'Start' }, { type: 'date', id: 'End' }]
@@ -107,14 +94,15 @@ const TimelineChart = ({ roadmapData, onTaskUpdate }) => {
     const selection = chartWrapper.getChart().getSelection();
     if (selection.length > 0) {
       const selectedRow = selection[0].row;
-      // We need to find the original task from the processed data, as its index matches the chart row
-      if (selectedRow >= 0 && processedTasksForSummary[selectedRow]) {
-        setSelectedTask(processedTasksForSummary[selectedRow]);
+      // We need to find the original task from the filtered data, as its index matches the chart row
+      const filteredDataSource = showCompleted ? roadmapData : roadmapData.filter(task => !task.completed);
+      if (selectedRow >= 0 && filteredDataSource[selectedRow]) {
+        setSelectedTask(filteredDataSource[selectedRow]);
       }
     }
   };
 
-  // Toggle task completion status
+  // Toggle task completion
   const toggleTaskCompletion = (taskId) => {
     if (onTaskUpdate) {
       const updatedData = roadmapData.map(task => 
@@ -123,12 +111,12 @@ const TimelineChart = ({ roadmapData, onTaskUpdate }) => {
           : task
       );
       onTaskUpdate(updatedData);
-      setSelectedTask(prev => prev && prev.id === taskId ? { ...prev, completed: !prev.completed } : prev);
     }
   };
 
   // Chart options
   const getChartOptions = () => {
+    // ... (This function remains unchanged)
     const baseOptions = {
       height: Math.max(400, roadmapData.length * 50),
       backgroundColor: '#f8f9fa',
@@ -173,6 +161,7 @@ const TimelineChart = ({ roadmapData, onTaskUpdate }) => {
     return baseOptions;
   };
 
+  const language = data?.language || 'de';
   const labels = data?.roadmapLabels || {};
 
   return (
@@ -321,7 +310,7 @@ const TimelineChart = ({ roadmapData, onTaskUpdate }) => {
           </div>
           <div className="stat-item">
             <span className="stat-label">{labels.totalHours || 'Total Hours'}:</span>
-            <span className="stat-value">{processedTasksForSummary.reduce((sum, task) => sum + (task.calculatedTotalHours || 0), 0)}h</span>
+            <span className="stat-value">{roadmapData.reduce((sum, task) => sum + (task.dailyHours || 1), 0)}h</span>
           </div>
         </div>
       </div>

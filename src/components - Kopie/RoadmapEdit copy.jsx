@@ -165,13 +165,6 @@ export default function Roadmap({ roadmapData, onRoadmapUpdate, titleDisplay2, t
   const showDeleteConfirmation = (task) => setConfirmationDialog({ task });
   const cancelDelete = () => setConfirmationDialog(null);
 
-  
-  // --- UPDATED: Total hours calculation now considers duration in days ---
-   const totalHours = currentRoadmapData.reduce((sum, item) => {
-     const duration = item.durationDays || 1;
-    return sum + ((item.dailyHours || 0) * duration);
-  }, 0);
-
   const confirmDelete = () => {
     if (!confirmationDialog) return;
     const { id } = confirmationDialog.task;
@@ -201,7 +194,7 @@ export default function Roadmap({ roadmapData, onRoadmapUpdate, titleDisplay2, t
     return () => document.removeEventListener('keydown', handleEscKey);
   }, [confirmationDialog]);
 
- 
+  const totalHours = currentRoadmapData.reduce((sum, item) => sum + (item.dailyHours || 0), 0);
   const language = data.language || 'de';
 
   return (
@@ -283,36 +276,6 @@ export default function Roadmap({ roadmapData, onRoadmapUpdate, titleDisplay2, t
               <div className="timeSection">
                 <div className="timeInfo">
                   <div className="timeLabel">{data.roadmapLabels?.startTimeLabel || 'START TIME'}</div>
-              
-                               {/* --- UPDATED: Label changed for clarity --- */}
-                 <div className="timeLabel">{data.roadmapLabels?.dailyStartTimeLabel || 'DAILY START TIME'}</div>
-                   {isEditing ? (
-                     <input type="time" value={currentData.dailyStartTime || '10:00'} onChange={(e) => updateEditedData('dailyStartTime', e.target.value)} className="time-input" />
-                   ) : (
-                     <div className="timeValue">{currentData.dailyStartTime || '10:00'}</div>
-                   )}
-                 </div>
-                 {/* --- NEW: Duration in Days field --- */}
-                <div className="timeInfo">
-                  <div className="timeLabel">{data.roadmapLabels?.durationDaysLabel || 'DURATION (DAYS)'}</div>
-                  {isEditing ? (
-                     <div className="duration-input-container">
-                       <input type="number" value={currentData.durationDays || 1} onChange={(e) => updateEditedData('durationDays', parseInt(e.target.value, 10) || 1)} className="number-input" min="1" step="1" />
-                     </div>
-                  ) : (
-                    <div className="timeValue">{currentData.durationDays || 1} day(s)</div>
-                  )}
-                </div>
-                 <div className="timeInfo">
-                  <div className="timeLabel">{data.roadmapLabels?.endTimeLabel || 'END TIME'}</div>
-                  <div className="timeValue">{endTime}</div>
-                </div>
-                <div className="timeInfo">
-                  <div className="timeLabel">{data.roadmapLabels?.durationLabel || 'DURATION'}</div>
-                  {/* --- UPDATED: This now represents daily duration, not total --- */}
-                  <div className="timeLabel">{data.roadmapLabels?.dailyDurationLabel || 'DAILY DURATION'}</div>
-                
-            
                   {isEditing ? (
                     <input type="time" value={currentData.dailyStartTime || '10:00'} onChange={(e) => updateEditedData('dailyStartTime', e.target.value)} className="time-input" />
                   ) : (

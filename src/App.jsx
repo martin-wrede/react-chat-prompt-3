@@ -1,12 +1,15 @@
 // --- START OF FILE App.jsx ---
 
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
  import Form from './components/Form';
  import ChatInterface from './components/ChatInterface';
 
 import RoadmapEdit from './components/RoadmapEdit';
 import CalendarTimeline from './components/CalendarTimeline';
 import TimelineChart from './components/TimelineChart';
+
+import  SVGTimeline from './components/SVGTimeline';
+
 
 import { Context } from './Context';
 import * as fileUtils from './utils/fileUtils';
@@ -118,10 +121,45 @@ function App() {
     setRoadmapToday(todayTasks);
   }, [roadmapData, today]);
 
-  const handleRoadmapUpdate = (updatedData) => {
-    updatedData.sort((a, b) => new Date(a.date) - new Date(b.date));
-    setRoadmapData(updatedData);
-  };
+const handleRoadmapUpdate = (updatedData) => {
+    // This is the data coming from SVGTimeline, with .start and .end properties.
+    // We need to convert it back to the format your app uses (.date and .durationDays).
+    const processedData = updatedData.map(task => {
+        // Guard against any weird data without a start date.
+        if (!task.start) {
+            return task;
+        }
+
+        // If the task already has a .date, it's probably fine (e.g., from another component).
+        // If not, we create it from .start.
+        const newTask = { ...task };
+        if (!newTask.date) {
+            newTask.date = task.start;
+        }
+
+        // If start and end exist, calculate durationDays.
+        if (task.start && task.end) {
+            const startDate = new Date(task.start);
+            const endDate = new Date(task.end);
+            const durationMs = endDate.getTime() - startDate.getTime();
+            const durationDays = Math.round(durationMs / MS_PER_DAY) + 1;
+            newTask.durationDays = Math.max(1, durationDays);
+        }
+
+        // Clean up properties that are only used by SVGTimeline
+        delete newTask.start;
+        delete newTask.end;
+        delete newTask.track; // 'track' is also temporary
+
+        return newTask;
+    });
+
+    // Now that every object has a .date property, sorting will work correctly.
+    processedData.sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    // Update the main state with the correctly formatted and sorted data.
+    setRoadmapData(processedData);
+};
 
   const processAIResponse = (content) => {
     const defaultMotivation = data?.chat_defaultMotivation || 'Erreiche dein Ziel!';
@@ -272,6 +310,34 @@ function App() {
     setUploadedFiles(prev => prev.filter(file => file.id !== fileId));
   };
 
+  
+// Create the data specifically for SVGTimeline
+  const timelineCompatibleData = useMemo(() => {
+    return roadmapData
+      // [FIX] Filter out any tasks that don't have a valid date property
+      .filter(task => task && task.date && typeof task.date === 'string')
+      .map((task, index) => {
+        const startDate = new Date(task.date);
+        const endDate = new Date(startDate);
+        
+        // Calculate end date based on duration. Defaults to 1 day.
+        // Subtract 1 because a 1-day task starts and ends on the same day.
+        const durationInDays = Math.max(1, task.durationDays || 1);
+        endDate.setDate(startDate.getDate() + durationInDays - 1);
+
+        return {
+          // Keep original data
+          ...task,
+          // Add/overwrite properties needed by SVGTimeline
+          id: task.id || `task-${index}`,
+          track: index + 1, // Assign a track number
+          start: task.date,
+          end: endDate.toISOString().split('T')[0],
+          // Provide a default color scheme
+          color: ['#3ecf8e', '#ffc107', '#ff7043', '#42a5f5'][index % 4]
+        };
+      });
+  }, [roadmapData]); // This will re-calculate only when roadmapData changes
 
   return (
     <div className="app-container">
@@ -343,6 +409,15 @@ function App() {
           onTaskUpdate={handleRoadmapUpdate} 
         />
         
+      </div> 
+      
+   <div id="part6" style={{ display: "block" }}>
+        <h2>Interactive SVG Timeline</h2>
+        <SVGTimeline 
+         roadmapData={timelineCompatibleData} 
+          onTaskUpdate={handleRoadmapUpdate} 
+        />
+            
       </div> 
       
     </div>
