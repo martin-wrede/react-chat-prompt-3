@@ -1,4 +1,4 @@
-// --- START OF FILE SVGTimeline.jsx (Complete and Corrected) ---
+// --- START OF FILE SVGTimeline.jsx (Complete and Final) ---
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 
@@ -22,8 +22,7 @@ export default function SVGTimeline({ roadmapData = [], onTaskUpdate }) {
   useEffect(() => {
     const observer = new ResizeObserver(entries => {
       if (entries[0]) {
-        const newWidth = entries[0].contentRect.width;
-        setContainerWidth(newWidth);
+        setContainerWidth(entries[0].contentRect.width);
       }
     });
 
@@ -66,9 +65,9 @@ export default function SVGTimeline({ roadmapData = [], onTaskUpdate }) {
     const maxDate = new Date(Math.max(...validDates));
 
     const startDate = new Date(minDate);
-    startDate.setDate(minDate.getDate() - 2); // Add 2 days padding at the start
+    startDate.setDate(minDate.getDate() - 2);
     const endDate = new Date(maxDate);
-    endDate.setDate(maxDate.getDate() + 2); // Add 2 days padding at the end
+    endDate.setDate(maxDate.getDate() + 2);
 
     const totalDays = Math.max(1, (endDate - startDate) / MS_PER_DAY);
     
@@ -205,22 +204,40 @@ export default function SVGTimeline({ roadmapData = [], onTaskUpdate }) {
   return (
     <div
       ref={containerRef}
-      style={{ position: "relative", width: "100%", padding: '1rem', boxSizing: 'border-box' }}
-      onMouseDown={() => {
-        if (dragState) {
-          cancelDrag();
-        }
-      }}
+      style={{ position: "relative", width: "100%", boxSizing: 'border-box' }}
+      onMouseDown={() => { if (dragState) cancelDrag(); }}
     >
-      <svg ref={svgRef} width={containerWidth} height={height} style={{ border: "1px solid #ccc", display: 'block' }}>
+      <svg ref={svgRef} width={containerWidth} height={height} style={{ border: "1px solid #ccc", display: 'block', borderRadius: '8px' }}>
         <defs>
           <style>{`
-            .svg-tooltip {
-              background: #333; color: #fff; padding: 4px 8px; border-radius: 4px;
-              font-size: 12px; opacity: 0; transition: opacity 0.2s;
-              display: inline-block; pointer-events: none;
+            .tooltip-wrapper {
+              position: relative;
+              background: #333;
+              color: #fff;
+              padding: 6px 10px;
+              border-radius: 5px;
+              font-size: 12px;
+              font-family: sans-serif;
+              display: inline-block;
+              white-space: nowrap;
             }
-            g.task-group:hover .svg-tooltip { opacity: 1; }
+            .tooltip-wrapper::after {
+              content: '';
+              position: absolute;
+              bottom: -5px;
+              left: 20px;
+              border-width: 5px;
+              border-style: solid;
+              border-color: #333 transparent transparent transparent;
+            }
+            .svg-tooltip-container {
+              opacity: 0;
+              transition: opacity 0.2s;
+              pointer-events: none;
+            }
+            g.task-group:hover .svg-tooltip-container {
+              opacity: 1;
+            }
           `}</style>
         </defs>
 
@@ -242,7 +259,7 @@ export default function SVGTimeline({ roadmapData = [], onTaskUpdate }) {
                 }
               }
               return months.map(month => (
-                  <text key={month.name} x={month.x + 5} y="20" className="month-label" fill="#555" fontSize="12">
+                  <text key={month.name} x={month.x + 5} y="20" fill="#555" fontSize="12" fontFamily="sans-serif">
                       {month.name}
                   </text>
               ));
@@ -254,14 +271,25 @@ export default function SVGTimeline({ roadmapData = [], onTaskUpdate }) {
               return (
                   <g key={`day-tick-${i}`}>
                       <line
-                          x1={x} y1={HEADER_HEIGHT - 20}
+                          x1={x} y1={HEADER_HEIGHT - 30}
                           x2={x} y2={height}
                           stroke="#e0e0e0"
                           strokeDasharray={date.getDay() === 0 || date.getDay() === 6 ? "4 4" : "none"}
                       />
-                      <text x={x + 4} y={HEADER_HEIGHT - 5} className="day-label" fontSize="10" fill="#777">
-                          {date.getDate()}
-                      </text>
+                      <g>
+                          <text
+                              x={x + 4} y={HEADER_HEIGHT - 20}
+                              fontSize="10"
+                              fontFamily="sans-serif"
+                              fill={date.getDay() === 0 || date.getDay() === 6 ? "#c62828" : "#777"}
+                              fontWeight={date.getDay() === 0 || date.getDay() === 6 ? "bold" : "normal"}
+                          >
+                              {['S', 'M', 'T', 'W', 'T', 'F', 'S'][date.getDay()]}
+                          </text>
+                          <text x={x + 4} y={HEADER_HEIGHT - 5} fontSize="10" fontFamily="sans-serif" fill="#777">
+                              {date.getDate()}
+                          </text>
+                      </g>
                   </g>
               );
           })}
@@ -269,6 +297,19 @@ export default function SVGTimeline({ roadmapData = [], onTaskUpdate }) {
         
         {/* --- Timeline Body (Tasks) --- */}
         <g className="timeline-body" transform={`translate(0, ${HEADER_HEIGHT})`}>
+          {roadmapData.map((task, i) => {
+              const displayName = task.task.length > 20 ? `${task.task.substring(0, 18)}...` : task.task;
+              return (
+                <text
+                  key={`label-${task.id}`}
+                  x={LABEL_WIDTH - 10} y={i * TRACK_HEIGHT + 25}
+                  textAnchor="end" fontSize="12" fill="#333" title={task.task} fontFamily="sans-serif"
+                >
+                  {displayName}
+                </text>
+              );
+          })}
+
           {roadmapData.map((_, i) => (
             <line
               key={`track-${i}`}
@@ -276,13 +317,6 @@ export default function SVGTimeline({ roadmapData = [], onTaskUpdate }) {
               y1={(i + 1) * TRACK_HEIGHT} y2={(i + 1) * TRACK_HEIGHT}
               stroke="#e0e0e0"
             />
-          ))}
-
-          {roadmapData.map((task, i) => (
-            <text key={`label-${task.id}`} x={LABEL_WIDTH - 10} y={i * TRACK_HEIGHT + 25}
-              textAnchor="end" fontSize="14" fill="#333">
-              Task {task.track}
-            </text>
           ))}
           
           {tasksToRender
@@ -317,11 +351,16 @@ export default function SVGTimeline({ roadmapData = [], onTaskUpdate }) {
                     style={{ cursor: 'ew-resize' }}
                     onMouseDown={(e) => { e.stopPropagation(); handleMouseDown(e, task, 'resize-end'); }}
                   />
-                  <foreignObject x={x + 5} y={y + BAR_HEIGHT + 5} width="150" height="100">
-                    <div xmlns="http://www.w3.org/1999/xhtml" className="svg-tooltip">
-                      <strong>Task {task.track}</strong><br />
-                      Start: {task.start}<br />
-                      End: {task.end}
+                  <foreignObject
+                    x={x + 5}
+                    y={y - 45}
+                    width="250"
+                    height="100"
+                    className="svg-tooltip-container"
+                  >
+                    <div xmlns="http://www.w3.org/1999/xhtml" className="tooltip-wrapper">
+                      <strong>Task:</strong> {task.task}<br />
+                      <strong>Dates:</strong> {task.start} to {task.end}
                     </div>
                   </foreignObject>
                 </g>

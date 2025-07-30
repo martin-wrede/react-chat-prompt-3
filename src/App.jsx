@@ -427,7 +427,9 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
  */}
 
       
-   <div id="part5" style={{ display: "block" }}>
+   <div id="part5" style={{ display: "block" }} 
+    className="component-wrapper"
+   >
         <h2>Interactive SVG Timeline</h2>
         <SVGTimeline 
          roadmapData={timelineCompatibleData} 
@@ -437,7 +439,9 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
         />
             
       </div> 
-      
+      <br/>
+       <br/>
+        <br/>
     </div>
   );
 }

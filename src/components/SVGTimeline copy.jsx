@@ -1,77 +1,114 @@
-// --- START OF FILE SVGTimeline.jsx (Corrected with useRef) ---
+// --- START OF FILE SVGTimeline.jsx (Complete and Corrected) ---
 
-import React, { useState, useMemo, useEffect, useCallback, useRef } from "react"; // 1. IMPORT useRef
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 
 // --- Constants ---
 const TRACK_HEIGHT = 40;
 const BAR_HEIGHT = 20;
 const LABEL_WIDTH = 100;
 const RESIZE_HANDLE_WIDTH = 8;
-const PIXELS_PER_DAY = 20;
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
+const HEADER_HEIGHT = 50; // Space at the top for the calendar header
+const BOTTOM_PADDING = 30;
 
 export default function SVGTimeline({ roadmapData = [], onTaskUpdate }) {
+  // --- State and Refs ---
   const [dragState, setDragState] = useState(null);
   const [tempTask, setTempTask] = useState(null);
-  const svgRef = useRef(null); // 2. CREATE the ref
+  const [containerWidth, setContainerWidth] = useState(0);
+  const svgRef = useRef(null);
+  const containerRef = useRef(null);
 
-  const { timelineStartDate, width } = useMemo(() => {
+  // --- Responsive Sizing: Get container width ---
+  useEffect(() => {
+    const observer = new ResizeObserver(entries => {
+      if (entries[0]) {
+        const newWidth = entries[0].contentRect.width;
+        setContainerWidth(newWidth);
+      }
+    });
+
+    const currentContainer = containerRef.current;
+    if (currentContainer) {
+      observer.observe(currentContainer);
+    }
+    
+    return () => {
+      if (currentContainer) {
+        observer.unobserve(currentContainer);
+      }
+    };
+  }, []); // Runs once on mount
+
+  // --- Dynamic Calculations for Timeline Scale ---
+  const { timelineStartDate, pixelsPerDay, totalDays } = useMemo(() => {
     const validTasks = roadmapData.filter(task => task && task.start && task.end);
-    if (validTasks.length === 0) {
-      const today = new Date();
+
+    if (validTasks.length === 0 || containerWidth === 0) {
       return {
-        timelineStartDate: new Date(today.getFullYear(), today.getMonth(), 1),
-        width: 30 * PIXELS_PER_DAY,
+        timelineStartDate: new Date(),
+        pixelsPerDay: 20, // Default fallback value
+        totalDays: 30
       };
     }
+
     const allDates = validTasks.flatMap(task => [new Date(task.start), new Date(task.end)]);
     const validDates = allDates.filter(date => !isNaN(date.getTime()));
+
     if (validDates.length === 0) {
-      const today = new Date();
       return {
-        timelineStartDate: new Date(today.getFullYear(), today.getMonth(), 1),
-        width: 30 * PIXELS_PER_DAY,
+        timelineStartDate: new Date(),
+        pixelsPerDay: 20,
+        totalDays: 30
       };
     }
+
     const minDate = new Date(Math.min(...validDates));
     const maxDate = new Date(Math.max(...validDates));
-    const timelineStartDate = new Date(minDate);
-    timelineStartDate.setDate(minDate.getDate() - 5);
-    const timelineEndDate = new Date(maxDate);
-    timelineEndDate.setDate(maxDate.getDate() + 5);
-    const totalDays = Math.max(1, (timelineEndDate - timelineStartDate) / MS_PER_DAY);
-    const width = totalDays * PIXELS_PER_DAY;
-    return { timelineStartDate, width };
-  }, [roadmapData]);
 
+    const startDate = new Date(minDate);
+    startDate.setDate(minDate.getDate() - 2); // Add 2 days padding at the start
+    const endDate = new Date(maxDate);
+    endDate.setDate(maxDate.getDate() + 2); // Add 2 days padding at the end
+
+    const totalDays = Math.max(1, (endDate - startDate) / MS_PER_DAY);
+    
+    const availableWidth = containerWidth - LABEL_WIDTH;
+    const pixelsPerDay = availableWidth > 0 ? availableWidth / totalDays : 0;
+
+    return { timelineStartDate: startDate, pixelsPerDay, totalDays };
+  }, [roadmapData, containerWidth]);
+
+  // --- Coordinate/Date Conversion Helpers ---
   const dateToX = useCallback((date) => {
     if (!timelineStartDate || !date) return 0;
-    return ((new Date(date) - timelineStartDate) / MS_PER_DAY) * PIXELS_PER_DAY;
-  }, [timelineStartDate]);
+    return ((new Date(date) - timelineStartDate) / MS_PER_DAY) * pixelsPerDay;
+  }, [timelineStartDate, pixelsPerDay]);
 
   const xToDate = useCallback((x) => {
-    if (!timelineStartDate) return new Date().toISOString().split('T')[0];
-    const daysOffset = x / PIXELS_PER_DAY;
+    if (!timelineStartDate || pixelsPerDay === 0) return new Date().toISOString().split('T')[0];
+    const daysOffset = x / pixelsPerDay;
     const newDate = new Date(timelineStartDate);
     newDate.setTime(newDate.getTime() + daysOffset * MS_PER_DAY);
-    newDate.setHours(12, 0, 0, 0); // Round to noon to avoid timezone issues
+    newDate.setHours(12, 0, 0, 0);
     return newDate.toISOString().split('T')[0];
-  }, [timelineStartDate]);
+  }, [timelineStartDate, pixelsPerDay]);
 
-  // 3. FIX getMousePosInSVG to use the ref
-  const getMousePosInSVG = (e) => {
-    const svg = svgRef.current; // Use the ref
+  const getMousePosInSVG = useCallback((e) => {
+    const svg = svgRef.current;
     if (!svg) return { x: 0, y: 0 };
     const CTM = svg.getScreenCTM();
-    if (!CTM) return { x: 0, y: 0 }; // Safety check
+    if (!CTM) return { x: 0, y: 0 };
     return {
       x: (e.clientX - CTM.e) / CTM.a,
       y: (e.clientY - CTM.f) / CTM.d
     };
-  };
+  }, []);
 
+  // --- Drag and Drop Event Handlers ---
   const handleMouseDown = (e, task, type) => {
     e.preventDefault();
+    e.stopPropagation();
     document.body.style.cursor = type === 'move' ? 'grabbing' : 'ew-resize';
     const { x } = getMousePosInSVG(e);
     setDragState({
@@ -88,23 +125,23 @@ export default function SVGTimeline({ roadmapData = [], onTaskUpdate }) {
     const { x: currentMouseX } = getMousePosInSVG(e);
     const dx = currentMouseX - dragState.initialMouseX;
     
-    // Improved logic: work with date objects
+    if (pixelsPerDay === 0) return;
+
+    const dayDelta = Math.round(dx / pixelsPerDay);
     const originalStart = new Date(dragState.originalTask.start);
     const originalEnd = new Date(dragState.originalTask.end);
     let newStart = new Date(originalStart);
     let newEnd = new Date(originalEnd);
     
-    const dayDelta = Math.round(dx / PIXELS_PER_DAY);
-
     if (dragState.type === 'move') {
       newStart.setDate(originalStart.getDate() + dayDelta);
       newEnd.setDate(originalEnd.getDate() + dayDelta);
     } else if (dragState.type === 'resize-start') {
       newStart.setDate(originalStart.getDate() + dayDelta);
-      if (newStart > newEnd) newStart = newEnd; // Prevent crossover
+      if (newStart > newEnd) newStart = newEnd;
     } else if (dragState.type === 'resize-end') {
       newEnd.setDate(originalEnd.getDate() + dayDelta);
-      if (newEnd < newStart) newEnd = newStart; // Prevent crossover
+      if (newEnd < newStart) newEnd = newStart;
     }
 
     setTempTask({
@@ -112,46 +149,73 @@ export default function SVGTimeline({ roadmapData = [], onTaskUpdate }) {
       start: newStart.toISOString().split('T')[0],
       end: newEnd.toISOString().split('T')[0]
     });
-  }, [dragState, getMousePosInSVG]); // getMousePosInSVG is now a stable dependency
+  }, [dragState, getMousePosInSVG, pixelsPerDay]);
+  
+  const cancelDrag = useCallback(() => {
+    document.body.style.cursor = 'default';
+    setDragState(null);
+    setTempTask(null);
+  }, []);
 
   const handleMouseUp = useCallback(() => {
     if (!dragState || !tempTask) return;
-    document.body.style.cursor = 'default';
     if (onTaskUpdate && (tempTask.start !== dragState.originalTask.start || tempTask.end !== dragState.originalTask.end)) {
+
       const updatedData = roadmapData.map(task =>
         task.id === tempTask.id ? { ...task, start: tempTask.start, end: tempTask.end } : task
       );
       onTaskUpdate(updatedData);
     }
-    setDragState(null);
-    setTempTask(null);
-  }, [dragState, tempTask, roadmapData, onTaskUpdate]);
+    cancelDrag();
+  }, [dragState, tempTask, roadmapData, onTaskUpdate, cancelDrag]);
   
+  // --- Global Event Listeners for UX ---
   useEffect(() => {
-    // No need for handleGlobalMouseMove wrapper anymore, we can just pass handleMouseMove
-    if (dragState) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-      return () => {
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [dragState, handleMouseMove, handleMouseUp]);
+    if (!dragState) return;
 
-  const height = TRACK_HEIGHT * roadmapData.length + 40;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        cancelDrag();
+      }
+    };
+    
+    const handleContextMenu = (e) => {
+        e.preventDefault();
+        cancelDrag();
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('contextmenu', handleContextMenu);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('contextmenu', handleContextMenu);
+      document.body.style.cursor = 'default';
+    };
+  }, [dragState, handleMouseMove, handleMouseUp, cancelDrag]);
+
+  // --- Data for Rendering ---
+  const height = (TRACK_HEIGHT * roadmapData.length) + HEADER_HEIGHT  + BOTTOM_PADDING;
+
   const tasksToRender = useMemo(() => roadmapData.map(task =>
     dragState && task.id === dragState.id ? tempTask : task
   ), [roadmapData, dragState, tempTask]);
 
   return (
-    <div style={{ position: "relative", overflowX: 'auto', padding: '1rem' }}>
-      <svg
-        ref={svgRef} // 4. ATTACH the ref to the SVG element
-        width={width + LABEL_WIDTH}
-        height={height}
-        style={{ border: "1px solid #ccc", display: 'block' }}
-      >
+    <div
+      ref={containerRef}
+    style={{ position: "relative", width: "100%", boxSizing: 'border-box' }}
+      onMouseDown={() => {
+        if (dragState) {
+          cancelDrag();
+        }
+      }}
+    >
+      <svg ref={svgRef} width={containerWidth} height={height} style={{ border: "1px solid #ccc", display: 'block' }}>
         <defs>
           <style>{`
             .svg-tooltip {
@@ -163,51 +227,140 @@ export default function SVGTimeline({ roadmapData = [], onTaskUpdate }) {
           `}</style>
         </defs>
 
-        {roadmapData.map((_, i) => (
-          <line
-            key={`track-${i}`}
-            x1={LABEL_WIDTH} x2={width + LABEL_WIDTH}
-            y1={(i + 1) * TRACK_HEIGHT} y2={(i + 1) * TRACK_HEIGHT}
-            stroke="#e0e0e0"
-          />
-        ))}
+        {/* --- Timeline Header (Calendar) --- */}
+        <g className="timeline-header" transform={`translate(${LABEL_WIDTH}, 0)`}>
+          {(() => {
+              const months = [];
+              if (totalDays > 0) {
+                let currentDate = new Date(timelineStartDate);
+                for (let i = 0; i < totalDays; i++) {
+                    const monthName = currentDate.toLocaleString('default', { month: 'short' });
+                    if (currentDate.getDate() === 1 || i === 0) {
+                        months.push({
+                            name: `${monthName} ${currentDate.getFullYear()}`,
+                            x: dateToX(currentDate)
+                        });
+                    }
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+              }
+              return months.map(month => (
+                  <text key={month.name} x={month.x + 5} y="20" className="month-label" fill="#555" fontSize="12">
+                      {month.name}
+                  </text>
+              ));
+          })()}
+          {Array.from({ length: Math.ceil(totalDays) }).map((_, i) => {
+              const date = new Date(timelineStartDate);
+              date.setDate(date.getDate() + i);
+              const x = dateToX(date);
+              return (
+                  <g key={`day-tick-${i}`}>
+                      <line
+                          x1={x} y1={HEADER_HEIGHT - 20}
+                          x2={x} y2={height}
+                          stroke="#e0e0e0"
+                          strokeDasharray={date.getDay() === 0 || date.getDay() === 6 ? "4 4" : "none"}
+                      />
+                      <g>
+    {/* Day Name (e.g., "S" for Sunday) */}
+    <text
+        x={x + 4}
+        y={HEADER_HEIGHT - 25} // Position it above the day number
+        className="day-name-label"
+        fontSize="10"
+        fill={date.getDay() === 0 || date.getDay() === 6 ? "#b71c1c" : "#777"} // Highlight weekends
+        fontWeight={date.getDay() === 0 || date.getDay() === 6 ? "bold" : "normal"}
+    >
+        {['S', 'M', 'T', 'W', 'T', 'F', 'S'][date.getDay()]}
+    </text>
+    
+    {/* Day Number (e.g., "15") */}
+    <text x={x + 4} y={HEADER_HEIGHT - 5} className="day-number-label" fontSize="10" fill="#777">
+        {date.getDate()}
+    </text>
+</g>
+                  </g>
+              );
+          })}
+        </g>
+        
+        {/* --- Timeline Body (Tasks) --- */}
+        <g className="timeline-body" transform={`translate(0, ${HEADER_HEIGHT})`}>
+          {roadmapData.map((_, i) => (
+            <line
+              key={`track-${i}`}
+              x1={LABEL_WIDTH} x2={containerWidth}
+              y1={(i + 1) * TRACK_HEIGHT} y2={(i + 1) * TRACK_HEIGHT}
+              stroke="#e0e0e0"
+            />
+          ))}
 
-        {roadmapData.map((task, i) => (
-          <text key={`label-${task.id}`} x={LABEL_WIDTH - 10} y={i * TRACK_HEIGHT + 25}
-            textAnchor="end" fontSize="14" fill="#333">
-            Task {task.track}
-          </text>
-        ))}
+          {roadmapData.map((task, i) => {
+    // Truncate long task names to prevent them from overlapping the timeline
+    const displayName = task.task.length > 10 
+        ? `${task.task.substring(0, 18)}...` 
+        : task.task;
 
-        {tasksToRender
-          .filter(task => task && task.start && task.end)
-          .map((task) => {
-            const yIndex = roadmapData.findIndex(t => t.id === task.id);
-            if (yIndex === -1) return null;
+    return (
+      <text
+        key={`label-${task.id}`}
+        x={LABEL_WIDTH - 10}
+        y={i * TRACK_HEIGHT + 25}
+        textAnchor="end"
+        fontSize="12" // Slightly smaller font for better fit
+        fill="#333"
+        title={task.task} // Show the full task name on hover
+      >
+        {displayName}
+      </text>
+    );
+})}
 
-            const x = dateToX(task.start) + LABEL_WIDTH;
-            // FIX for bar width: end date should be inclusive
-            const taskWidth = Math.max(PIXELS_PER_DAY, dateToX(task.end) - dateToX(task.start) + PIXELS_PER_DAY);
-            const y = yIndex * TRACK_HEIGHT + 10;
-            
-            return (
-              <g key={task.id} className="task-group" onMouseDown={(e) => handleMouseDown(e, task, 'move')} style={{ cursor: 'grab' }}>
-                <rect x={x} y={y} width={taskWidth} height={BAR_HEIGHT} rx={4} fill={task.color} />
-                <rect x={x - RESIZE_HANDLE_WIDTH / 2} y={y} width={RESIZE_HANDLE_WIDTH} height={BAR_HEIGHT} fill="transparent" style={{ cursor: 'ew-resize' }} onMouseDown={(e) => { e.stopPropagation(); handleMouseDown(e, task, 'resize-start'); }} />
-                <rect x={x + taskWidth - RESIZE_HANDLE_WIDTH / 2} y={y} width={RESIZE_HANDLE_WIDTH} height={BAR_HEIGHT} fill="transparent" style={{ cursor: 'ew-resize' }} onMouseDown={(e) => { e.stopPropagation(); handleMouseDown(e, task, 'resize-end'); }} />
-                <foreignObject x={x + 5} y={y + BAR_HEIGHT + 5} width="150" height="100">
-                  <div xmlns="http://www.w3.org/1999/xhtml" className="svg-tooltip">
-                    <strong>Task {task.track}</strong><br />
-                    Start: {task.start}<br />
-                    End: {task.end}
-                  </div>
-                </foreignObject>
-              </g>
-            );
-        })}
+          {tasksToRender
+            .filter(task => task && task.start && task.end)
+            .map((task) => {
+              const yIndex = roadmapData.findIndex(t => t.id === task.id);
+              if (yIndex === -1) return null;
+
+              const x = dateToX(task.start) + LABEL_WIDTH;
+              const taskWidth = Math.max(pixelsPerDay / 2, dateToX(task.end) - dateToX(task.start) + pixelsPerDay);
+              const y = yIndex * TRACK_HEIGHT + 10;
+              
+              return (
+                <g
+                  key={task.id}
+                  className="task-group"
+                  onMouseDown={(e) => { e.stopPropagation(); handleMouseDown(e, task, 'move'); }}
+                  style={{ cursor: 'grab' }}
+                >
+                  <rect x={x} y={y} width={taskWidth} height={BAR_HEIGHT} rx={4} fill={task.color} />
+                  <rect
+                    x={x - RESIZE_HANDLE_WIDTH / 2} y={y}
+                    width={RESIZE_HANDLE_WIDTH} height={BAR_HEIGHT}
+                    fill="transparent"
+                    style={{ cursor: 'ew-resize' }}
+                    onMouseDown={(e) => { e.stopPropagation(); handleMouseDown(e, task, 'resize-start'); }}
+                  />
+                  <rect
+                    x={x + taskWidth - RESIZE_HANDLE_WIDTH / 2} y={y}
+                    width={RESIZE_HANDLE_WIDTH} height={BAR_HEIGHT}
+                    fill="transparent"
+                    style={{ cursor: 'ew-resize' }}
+                    onMouseDown={(e) => { e.stopPropagation(); handleMouseDown(e, task, 'resize-end'); }}
+                  />
+                  <foreignObject x={x + 5} y={y + BAR_HEIGHT + 5} width="150" height="100">
+                    <div xmlns="http://www.w3.org/1999/xhtml" className="svg-tooltip">
+                      <strong>Task {task.task}</strong><br />
+                      Start: {task.start}<br />
+                      End: {task.end}
+                    </div>
+                  </foreignObject>
+                </g>
+              );
+          })}
+        </g>
       </svg>
     </div>
   );
 }
-
-    

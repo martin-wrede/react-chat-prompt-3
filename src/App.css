@@ -479,3 +479,11 @@ background-color: white;
   align-self: center;
   width: 80%;
 }
+
+component-wrapper {
+  padding: 1rem; /* Or whatever your standard padding is */
+  margin-bottom: 2rem;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
