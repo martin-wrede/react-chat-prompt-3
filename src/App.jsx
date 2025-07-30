@@ -124,45 +124,55 @@ function App() {
 // [THE FIX] Define the constant here
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
-const handleRoadmapUpdate = (updatedData) => {
-    // This is the data coming from SVGTimeline, with .start and .end properties.
-    // We need to convert it back to the format your app uses (.date and .durationDays).
-    const processedData = updatedData.map(task => {
-        // Guard against any weird data without a start date.
-        if (!task.start) {
-            return task;
+  // [THE FIX] Replace your existing handleRoadmapUpdate with this one.
+  const handleRoadmapUpdate = (updatedData) => {
+    // 1. Check if the data is coming from a component that uses start/end format.
+    const isStartEndFormat = updatedData.length > 0 && updatedData[0].hasOwnProperty('start');
+
+    let processedData;
+
+    if (isStartEndFormat) {
+      // 2. If it's from SVGTimeline (start/end), convert it to the app's native format.
+      processedData = updatedData.map(task => {
+        // Guard against any malformed tasks
+        if (!task.start || !task.end) {
+          console.warn("Skipping task update due to missing start/end date:", task);
+          return task;
         }
 
-        // If the task already has a .date, it's probably fine (e.g., from another component).
-        // If not, we create it from .start.
+        const startDate = new Date(task.start);
+        const endDate = new Date(task.end);
+        
+        // Calculate duration in days. The `+ 1` makes it inclusive.
+        // (e.g., July 1 to July 1 is 1 day, not 0).
+        const durationMs = endDate.getTime() - startDate.getTime();
+        const durationDays = Math.round(durationMs / MS_PER_DAY) + 1;
+        
+        // Create a new object to avoid direct state mutation issues.
         const newTask = { ...task };
-        if (!newTask.date) {
-            newTask.date = task.start;
-        }
+        
+        // Set the properties that the rest of the app (like RoadmapEdit) expects.
+        newTask.date = task.start; // The primary date is the start date.
+        newTask.durationDays = Math.max(1, durationDays);
 
-        // If start and end exist, calculate durationDays.
-        if (task.start && task.end) {
-            const startDate = new Date(task.start);
-            const endDate = new Date(task.end);
-            const durationMs = endDate.getTime() - startDate.getTime();
-            const durationDays = Math.round(durationMs / MS_PER_DAY) + 1;
-            newTask.durationDays = Math.max(1, durationDays);
-        }
-
-        // Clean up properties that are only used by SVGTimeline
+        // It's good practice to clean up the temporary properties.
         delete newTask.start;
         delete newTask.end;
-        delete newTask.track; // 'track' is also temporary
+        delete newTask.track; // 'track' is also temporary for the SVG timeline.
 
         return newTask;
-    });
+      });
+    } else {
+      // 3. If it's not start/end, assume it's from RoadmapEdit and already in the correct format.
+      processedData = updatedData;
+    }
 
-    // Now that every object has a .date property, sorting will work correctly.
+    // 4. Now that ALL data is in the consistent `{ date, durationDays, ... }` format, we can sort it.
     processedData.sort((a, b) => new Date(a.date) - new Date(b.date));
     
-    // Update the main state with the correctly formatted and sorted data.
+    // 5. Update the central state. This will trigger a re-render for ALL components.
     setRoadmapData(processedData);
-};
+  };
 
   const processAIResponse = (content) => {
     const defaultMotivation = data?.chat_defaultMotivation || 'Erreiche dein Ziel!';
@@ -397,14 +407,14 @@ const handleRoadmapUpdate = (updatedData) => {
           titleDisplay3='block'
         />
       </div>
-     
+{/**     
       <div id="part4" style={{ display: "block" }}>
         <TimelineChart 
           roadmapData={roadmapData} 
           onTaskUpdate={handleRoadmapUpdate} 
         />
       </div>
-{/**
+
     <div id="part6" style={{ display: "block" }}>
         
         <CalendarTimeline 
