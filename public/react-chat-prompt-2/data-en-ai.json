@@ -131,7 +131,12 @@
     "remainingHours": "Remaining Hours",
 
     "infoTitle": "Advanced Time Tracking",
-    "infoText": "The roadmap now includes detailed time management with start times, durations, and end times. Calendar exports include precise scheduling information."
+    "infoText": "The roadmap now includes detailed time management with start times, durations, and end times. Calendar exports include precise scheduling information.",
+     "dailyStartTimeLabel": "DAILY START TIME",
+    "dailyEndTimeLabel": "DAILY END TIME",
+    "dailyDurationLabel": "DAILY DURATION",
+    "taskDurationDaysLabel": "TASK DURATION (DAYS)",
+    "taskDurationLabel": "TASK DURATION"
   },
 
   "sampleRoadmapData": [

@@ -124,7 +124,14 @@
     "remainingHours": "Verbleibende Stunden",
     
     "infoTitle": "Erweiterte Zeiterfassung",
-    "infoText": "Die Roadmap enthält jetzt detailliertes Zeitmanagement mit Startzeiten, Dauer und Endzeiten. Kalender-Exporte enthalten präzise Terminplanungsinformationen."
+    "infoText": "Die Roadmap enthält jetzt detailliertes Zeitmanagement mit Startzeiten, Dauer und Endzeiten. Kalender-Exporte enthalten präzise Terminplanungsinformationen.",
+      "dailyStartTimeLabel": "TÄGL STARTZEIT",
+    "dailyEndTimeLabel": "TÄGL ENDZEIT",
+    "dailyDurationLabel": "TÄGL DAUER",
+    "taskDurationDaysLabel": "AUFGABEN DAUER (TAGE)",
+    "taskDurationLabel": "AUFGABEN DAUER"
+  
+  
   },
   
   "sampleRoadmapData": [

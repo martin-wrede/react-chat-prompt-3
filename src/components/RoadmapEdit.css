@@ -280,11 +280,7 @@
   justify-content: space-between; /* Pushes the date to the left and delete button to the right */
   margin-bottom: 16px;
 }
-
-.leftHeader {
-  
-}
-
+ 
 /* --- ADD this new rule for the centered button --- */
 .header-center-button {
   position: absolute;
