@@ -408,7 +408,7 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
         />
       </div>
 
-   <div id="part4" style={{ display: "block" }} 
+   <div id="part4" style={{ display: part4 }} 
     className="component-wrapper"
    >
         <h2>Interactive SVG Timeline</h2>
