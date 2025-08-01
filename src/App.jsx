@@ -407,27 +407,8 @@ const MS_PER_DAY = 1000 * 60 * 60 * 24;
           titleDisplay3='block'
         />
       </div>
-{/**     
-      <div id="part4" style={{ display: "block" }}>
-        <TimelineChart 
-          roadmapData={roadmapData} 
-          onTaskUpdate={handleRoadmapUpdate} 
-        />
-      </div>
 
-    <div id="part6" style={{ display: "block" }}>
-        
-        <CalendarTimeline 
-          roadmapData={roadmapData} 
-          onTaskUpdate={handleRoadmapUpdate} 
-        />
-        
-      </div> 
-
- */}
-
-      
-   <div id="part5" style={{ display: "block" }} 
+   <div id="part4" style={{ display: "block" }} 
     className="component-wrapper"
    >
         <h2>Interactive SVG Timeline</h2>
